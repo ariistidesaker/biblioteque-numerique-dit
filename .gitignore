@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+docker-compose.override.yml
+
+# DVC
+/data/*.csv
+/models/*.pkl
+# Suivre les fichiers .dvc
