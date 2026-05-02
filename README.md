@@ -182,6 +182,25 @@ bash start-local.sh
 
 - Appuyez sur `CTRL+C` dans le terminal qui execute `bash start-local.sh`.
 
+### Lancer un seul service manuellement (PowerShell)
+
+Si vous souhaitez isoler le développement et ne lancer qu'un seul service (ex: Utilisateurs), ouvrez un terminal PowerShell et suivez ces étapes :
+
+```powershell
+# 1. Démarrer uniquement la base de données (si elle n'est pas déjà allumée)
+docker compose up -d db
+
+# 2. Se placer dans le dossier du service concerné
+cd backend/utilisateurs
+
+# 3. Définir l'URL de la base de données avec le port mappé en local (5433)
+$env:DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/utilisateurs_db"
+
+# 4. Lancer le serveur (Port 8002 pour Utilisateurs)
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8002
+```
+*(Adaptez le nom du dossier, le nom de la base `_db` et le port pour les autres services : Livres=8001, Emprunts=8003)*
+
 ---
 
 ## 🐳 Démarrage Complet (Mode Docker)
