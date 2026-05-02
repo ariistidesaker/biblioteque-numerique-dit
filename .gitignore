@@ -1,21 +1,50 @@
+# Environnements virtuels
+venv/
+.venv/
+env/
+.env/
+
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
-.env
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
 
-# Node
+# Fichiers d'environnement et secrets
+.env
+.env.*
+*.pem
+
+# Bases de données locales
+*.db
+*.sqlite3
+
+# Node / Frontend
 node_modules/
 dist/
+build/
+.next/
 
-# IDE
+# IDE et OS
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db
 
 # Docker
 docker-compose.override.yml
+.docker/
 
-# DVC
+# DVC / Machine Learning
 /data/*.csv
 /models/*.pkl
-# Suivre les fichiers .dvc
+!/data/.gitkeep
+!/models/.gitkeep
+
+# Logs
+*.log

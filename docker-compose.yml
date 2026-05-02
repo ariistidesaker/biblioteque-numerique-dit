@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: library_user
+      POSTGRES_PASSWORD: library_pass
+      # POSTGRES_DB n'est plus utilisé ici pour permettre à init.sql de créer plusieurs bases
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - library-net
+
+  livres:
+    build: ./backend/livres
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/livres_db
+    depends_on:
+      - db
+    networks:
+      - library-net
+
+  utilisateurs:
+    build: ./backend/utilisateurs
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/utilisateurs_db
+    depends_on:
+      - db
+    networks:
+      - library-net
+
+  emprunts:
+    build: ./backend/emprunts
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/emprunts_db
+      LIVRES_SERVICE_URL: http://livres:8000
+      UTILISATEURS_SERVICE_URL: http://utilisateurs:8000
+    depends_on:
+      - db
+      - livres
+      - utilisateurs
+    networks:
+      - library-net
+
+  reco-api:
+    build: ./backend/recommandation
+    ports:
+      - "8004:8000"
+    volumes:
+      - model-storage:/app/model
+    environment:
+      MODEL_PATH: /app/model/model.pkl
+      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/recommandation_db
+    depends_on:
+      - db
+    networks:
+      - library-net
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    networks:
+      - library-net
+
+volumes:
+  db-data:
+  model-storage:
+
+networks:
+  library-net:
+    driver: bridge
