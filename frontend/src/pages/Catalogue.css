@@ -1,0 +1,203 @@
+.catalogue-container {
+  padding-top: calc(var(--nav-height) + 2rem);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-bottom: 5rem;
+}
+
+.catalogue-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.catalogue-title {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.catalogue-subtitle {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  margin-bottom: 2.5rem;
+}
+
+.search-bar {
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  transition: box-shadow var(--transition-fast);
+}
+
+.search-bar:focus-within {
+  box-shadow: 0 0 0 2px var(--primary);
+  border-color: transparent;
+}
+
+.search-icon {
+  font-size: 1.2rem;
+  margin-right: 1rem;
+  opacity: 0.7;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1.1rem;
+  padding: 0.75rem 0;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.categories-filter {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.filter-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Books Grid */
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2.5rem;
+}
+
+.book-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.book-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.book-cover {
+  height: 200px;
+  position: relative;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Simulated abstract covers */
+.gradient-1 { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+.gradient-2 { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+.gradient-3 { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+.gradient-4 { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+.gradient-5 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.gradient-6 { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); }
+
+.status-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
+}
+
+.status-badge.available {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.status-badge.unavailable {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.book-info {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.book-category {
+  color: var(--secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.book-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+  color: var(--text);
+}
+
+.book-author {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-muted);
+}
+
+.btn-outline:disabled:hover {
+  background: transparent;
+  transform: none;
+}
+
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  background: var(--glass-bg);
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+}
