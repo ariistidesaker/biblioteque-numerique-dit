@@ -73,11 +73,11 @@ def mettre_a_jour_exemplaires_livre(livre_id: int, increment: int):
         response_get.raise_for_status()
         livre = response_get.json()
         
-        nouveau_stock = livre["exemplaires_disponibles"] + increment
+        nouveau_stock = livre["exemplaires_totaux"] + increment
         
         response = httpx.put(
             f"{LIVRES_SERVICE_URL}/livres/{livre_id}",
-            json={"exemplaires_disponibles": nouveau_stock},
+            json={"exemplaires_totaux": nouveau_stock},
             timeout=5.0
         )
         response.raise_for_status()
@@ -104,8 +104,8 @@ def create_emprunt(data: schemas.EmpruntCreate, db: Session = Depends(get_db)):
     if utilisateur.get("type_utilisateur") in ["PERSONNEL", "ADMIN"]:
         raise HTTPException(status_code=403, detail="Le personnel administratif et les administrateurs ne peuvent pas emprunter de livres.")
 
-    # Vérifier s'il reste des exemplaires disponibles
-    if livre.get("exemplaires_disponibles", 0) <= 0:
+    # Vérifier s'il reste des exemplaires
+    if livre.get("exemplaires_totaux", 0) <= 0:
         raise HTTPException(status_code=400, detail="Il n'y a plus d'exemplaires disponibles pour ce livre.")
 
     # Vérifier que l'utilisateur n'a pas déjà ce livre en cours d'emprunt

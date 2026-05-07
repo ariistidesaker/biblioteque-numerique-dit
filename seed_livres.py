@@ -101,7 +101,8 @@ def seed_db():
         # Adaptation aux nouveaux noms de champs du backend
         payload = livre.copy()
         payload["exemplaires_totaux"] = payload.pop("quantite_totale", 1)
-        payload["exemplaires_disponibles"] = payload.pop("quantite_disponible", 1)
+        # On ignore quantite_disponible car on utilise uniquement exemplaires_totaux
+        payload.pop("quantite_disponible", None)
         
         try:
             response = requests.post(LIVRES_API_URL, json=payload)

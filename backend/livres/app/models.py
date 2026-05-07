@@ -11,5 +11,4 @@ class Livre(Base):
     description = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
     exemplaires_totaux = Column(Integer, default=1)
-    exemplaires_disponibles = Column(Integer, default=1)
     disponible = Column(Boolean, default=True)

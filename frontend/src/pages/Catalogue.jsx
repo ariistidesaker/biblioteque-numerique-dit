@@ -12,7 +12,13 @@ const Catalogue = () => {
   
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-  const [currentBook, setCurrentBook] = useState({ titre: '', auteur: '', isbn: '', description: '' });
+  const [currentBook, setCurrentBook] = useState({ 
+    titre: '', 
+    auteur: '', 
+    isbn: '', 
+    description: '',
+    exemplaires_totaux: 1
+  });
 
   const currentUser = authService.getCurrentUser();
   const isPersonnel = currentUser?.type_utilisateur === 'PERSONNEL' || currentUser?.type_utilisateur === 'ADMIN';
@@ -39,7 +45,7 @@ const Catalogue = () => {
            (book.isbn && book.isbn.includes(searchTerm));
   });
 
-  const handleOpenModal = (mode, book = { titre: '', auteur: '', isbn: '', description: '' }) => {
+  const handleOpenModal = (mode, book = { titre: '', auteur: '', isbn: '', description: '', exemplaires_totaux: 1 }) => {
     setModalMode(mode);
     setCurrentBook(book);
     setShowModal(true);
@@ -47,7 +53,13 @@ const Catalogue = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setCurrentBook({ titre: '', auteur: '', isbn: '', description: '' });
+    setCurrentBook({ 
+      titre: '', 
+      auteur: '', 
+      isbn: '', 
+      description: '',
+      exemplaires_totaux: 1
+    });
   };
 
   const handleSaveBook = async (e) => {
@@ -137,7 +149,7 @@ const Catalogue = () => {
               <div className={`book-cover ${!book.image_url ? `gradient-${(book.id % 6) + 1}` : ''}`} style={book.image_url ? { padding: 0, overflow: 'hidden' } : {}}>
                 {book.image_url && <img src={book.image_url} alt={`Couverture de ${book.titre}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 <div className={`status-badge ${book.disponible ? 'available' : 'unavailable'}`} style={book.image_url ? { position: 'absolute', top: '10px', right: '10px' } : {}}>
-                  {book.disponible ? `${book.exemplaires_disponibles} exemplaires` : 'Indisponible'}
+                  {book.disponible ? `${book.exemplaires_totaux} exemplaires` : 'Indisponible'}
                 </div>
               </div>
               
@@ -200,15 +212,9 @@ const Catalogue = () => {
                 <label>Description</label>
                 <textarea rows="4" value={currentBook.description || ''} onChange={e => setCurrentBook({...currentBook, description: e.target.value})} className="form-input"></textarea>
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Exemplaires Totaux</label>
-                  <input type="number" min="0" value={currentBook.exemplaires_totaux || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_totaux: parseInt(e.target.value) || 0})} className="form-input" />
-                </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Disponibles</label>
-                  <input type="number" min="0" value={currentBook.exemplaires_disponibles || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_disponibles: parseInt(e.target.value) || 0})} className="form-input" />
-                </div>
+              <div className="form-group">
+                <label>Exemplaires Totaux</label>
+                <input type="number" min="0" value={currentBook.exemplaires_totaux || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_totaux: parseInt(e.target.value) || 0})} className="form-input" />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-outline" onClick={handleCloseModal}>Annuler</button>
