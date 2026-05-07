@@ -47,7 +47,9 @@ def create_livre(livre: schemas.LivreCreate, db: Session = Depends(get_db)):
         isbn=livre.isbn,
         description=livre.description,
         image_url=livre.image_url,
-        disponible=livre.disponible,
+        exemplaires_totaux=livre.exemplaires_totaux,
+        exemplaires_disponibles=livre.exemplaires_disponibles,
+        disponible=livre.exemplaires_disponibles > 0,
     )
     db.add(db_livre)
     db.commit()
@@ -144,7 +146,13 @@ def update_livre(livre_id: int, data: schemas.LivreUpdate, db: Session = Depends
         livre.description = data.description
     if data.image_url is not None:
         livre.image_url = data.image_url
-    if data.disponible is not None:
+    if data.exemplaires_totaux is not None:
+        livre.exemplaires_totaux = data.exemplaires_totaux
+    if data.exemplaires_disponibles is not None:
+        livre.exemplaires_disponibles = data.exemplaires_disponibles
+        # Mise à jour automatique de la disponibilité
+        livre.disponible = livre.exemplaires_disponibles > 0
+    elif data.disponible is not None:
         livre.disponible = data.disponible
 
     db.commit()

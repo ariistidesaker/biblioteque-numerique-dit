@@ -98,8 +98,13 @@ def seed_db():
     print("Peuplement de la base de donnees des livres en cours...")
     success = 0
     for livre in livres:
+        # Adaptation aux nouveaux noms de champs du backend
+        payload = livre.copy()
+        payload["exemplaires_totaux"] = payload.pop("quantite_totale", 1)
+        payload["exemplaires_disponibles"] = payload.pop("quantite_disponible", 1)
+        
         try:
-            response = requests.post(LIVRES_API_URL, json=livre)
+            response = requests.post(LIVRES_API_URL, json=payload)
             if response.status_code == 201 or response.status_code == 200:
                 print(f"[OK] Ajoute : {livre['titre']}")
                 success += 1

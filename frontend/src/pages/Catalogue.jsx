@@ -137,7 +137,7 @@ const Catalogue = () => {
               <div className={`book-cover ${!book.image_url ? `gradient-${(book.id % 6) + 1}` : ''}`} style={book.image_url ? { padding: 0, overflow: 'hidden' } : {}}>
                 {book.image_url && <img src={book.image_url} alt={`Couverture de ${book.titre}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 <div className={`status-badge ${book.disponible ? 'available' : 'unavailable'}`} style={book.image_url ? { position: 'absolute', top: '10px', right: '10px' } : {}}>
-                  {book.disponible ? 'Disponible' : 'Indisponible'}
+                  {book.disponible ? `${book.exemplaires_disponibles} exemplaires` : 'Indisponible'}
                 </div>
               </div>
               
@@ -148,15 +148,17 @@ const Catalogue = () => {
                 <p className="book-isbn" style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>ISBN: {book.isbn}</p>
                 
                 <div className="book-actions">
-                  <button 
-                    className={`btn ${book.disponible ? 'btn-primary' : 'btn-disabled'} btn-full`}
-                    onClick={() => book.disponible && handleEmprunter(book.id)}
-                    disabled={!book.disponible}
-                  >
-                    {book.disponible ? 'Emprunter' : 'Déjà Emprunté'}
-                  </button>
+                  {!isPersonnel && (
+                    <button 
+                      className={`btn ${book.disponible ? 'btn-primary' : 'btn-disabled'} btn-full`}
+                      onClick={() => book.disponible && handleEmprunter(book.id)}
+                      disabled={!book.disponible}
+                    >
+                      {book.disponible ? 'Emprunter' : 'Épuisé'}
+                    </button>
+                  )}
                   {isPersonnel && (
-                    <div className="admin-actions" style={{display: 'flex', gap: '0.5rem', marginTop: '0.5rem'}}>
+                    <div className="admin-actions" style={{display: 'flex', gap: '0.5rem', marginTop: '0.5rem', width: '100%'}}>
                       <button className="btn btn-outline btn-full" onClick={() => handleOpenModal('edit', book)}>Modifier</button>
                       <button className="btn btn-outline btn-full" style={{borderColor: '#ef4444', color: '#ef4444'}} onClick={() => handleDeleteBook(book.id)}>Supprimer</button>
                     </div>
@@ -197,6 +199,16 @@ const Catalogue = () => {
               <div className="form-group">
                 <label>Description</label>
                 <textarea rows="4" value={currentBook.description || ''} onChange={e => setCurrentBook({...currentBook, description: e.target.value})} className="form-input"></textarea>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Exemplaires Totaux</label>
+                  <input type="number" min="0" value={currentBook.exemplaires_totaux || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_totaux: parseInt(e.target.value) || 0})} className="form-input" />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Disponibles</label>
+                  <input type="number" min="0" value={currentBook.exemplaires_disponibles || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_disponibles: parseInt(e.target.value) || 0})} className="form-input" />
+                </div>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-outline" onClick={handleCloseModal}>Annuler</button>

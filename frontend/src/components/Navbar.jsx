@@ -43,6 +43,11 @@ const Navbar = () => {
               Mon Profil
             </NavLink>
           )}
+          {(user?.type_utilisateur === 'PERSONNEL' || user?.type_utilisateur === 'ADMIN') && (
+            <NavLink to="/dashboard" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+              Dashboard
+            </NavLink>
+          )}
         </nav>
 
         <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

@@ -9,6 +9,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Confirmation from './pages/Confirmation';
 import Profil from './pages/Profil';
+import Dashboard from './pages/Dashboard';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
 
@@ -28,6 +29,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/profil" element={<Profil />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
         </main>
         <Footer />

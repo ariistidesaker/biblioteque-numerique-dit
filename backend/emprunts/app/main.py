@@ -65,19 +65,24 @@ def verifier_utilisateur_existe(utilisateur_id: UUID):
         raise HTTPException(status_code=503, detail="Service Utilisateurs indisponible.")
 
 
-def mettre_a_jour_disponibilite_livre(livre_id: int, disponible: bool):
-    """Appel REST vers le Service Livres pour mettre à jour la disponibilité."""
+def mettre_a_jour_exemplaires_livre(livre_id: int, increment: int):
+    """Appel REST vers le Service Livres pour incrémenter ou décrémenter les exemplaires."""
     try:
+        # On récupère d'abord l'état actuel
+        response_get = httpx.get(f"{LIVRES_SERVICE_URL}/livres/{livre_id}", timeout=5.0)
+        response_get.raise_for_status()
+        livre = response_get.json()
+        
+        nouveau_stock = livre["exemplaires_disponibles"] + increment
+        
         response = httpx.put(
             f"{LIVRES_SERVICE_URL}/livres/{livre_id}",
-            json={"disponible": disponible},
+            json={"exemplaires_disponibles": nouveau_stock},
             timeout=5.0
         )
         response.raise_for_status()
     except httpx.RequestError:
-        # On log l'erreur mais on ne bloque pas forcément si l'emprunt est déjà créé (à débattre)
-        # Ici on préfère lever une exception pour garder la cohérence
-        raise HTTPException(status_code=503, detail="Impossible de mettre à jour la disponibilité du livre.")
+        raise HTTPException(status_code=503, detail="Impossible de mettre à jour le stock de livres.")
 
 
 # ══════════════════════════════════════════════
@@ -93,11 +98,15 @@ def mettre_a_jour_disponibilite_livre(livre_id: int, disponible: bool):
 def create_emprunt(data: schemas.EmpruntCreate, db: Session = Depends(get_db)):
     # Vérifier que le livre et l'utilisateur existent (appels REST)
     livre = verifier_livre_existe(data.livre_id)
-    verifier_utilisateur_existe(data.utilisateur_id)
+    utilisateur = verifier_utilisateur_existe(data.utilisateur_id)
 
-    # Vérifier si le livre est disponible
-    if not livre.get("disponible", True):
-        raise HTTPException(status_code=400, detail="Ce livre n'est pas disponible pour l'emprunt.")
+    # Restriction : Le personnel ne peut pas emprunter
+    if utilisateur.get("type_utilisateur") in ["PERSONNEL", "ADMIN"]:
+        raise HTTPException(status_code=403, detail="Le personnel administratif et les administrateurs ne peuvent pas emprunter de livres.")
+
+    # Vérifier s'il reste des exemplaires disponibles
+    if livre.get("exemplaires_disponibles", 0) <= 0:
+        raise HTTPException(status_code=400, detail="Il n'y a plus d'exemplaires disponibles pour ce livre.")
 
     # Vérifier que l'utilisateur n'a pas déjà ce livre en cours d'emprunt
     emprunt_actif = db.query(models.Emprunt).filter(
@@ -117,8 +126,8 @@ def create_emprunt(data: schemas.EmpruntCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(emprunt)
 
-    # Mettre à jour la disponibilité du livre
-    mettre_a_jour_disponibilite_livre(data.livre_id, disponible=False)
+    # Décrémenter les exemplaires disponibles
+    mettre_a_jour_exemplaires_livre(data.livre_id, increment=-1)
 
     return emprunt
 
@@ -148,8 +157,8 @@ def retourner_livre(emprunt_id: int, data: schemas.RetourRequest, db: Session = 
     db.commit()
     db.refresh(emprunt)
 
-    # Mettre à jour la disponibilité du livre
-    mettre_a_jour_disponibilite_livre(emprunt.livre_id, disponible=True)
+    # Incrémenter les exemplaires disponibles
+    mettre_a_jour_exemplaires_livre(emprunt.livre_id, increment=1)
 
     return emprunt
 
