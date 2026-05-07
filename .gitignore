@@ -18,6 +18,8 @@ htmlcov/
 # Fichiers d'environnement et secrets
 .env
 .env.*
+!.env.example
+
 *.pem
 
 # Bases de données locales
