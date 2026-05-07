@@ -137,7 +137,10 @@ const Catalogue = () => {
       </div>
 
       {isLoading ? (
-        <div className="loading-state">Chargement des livres...</div>
+        <div className="loader-container">
+          <div className="spinner"></div>
+          <p className="loading-text">Chargement du catalogue...</p>
+        </div>
       ) : (
         <div className="books-grid">
           {filteredBooks.map((book, index) => (

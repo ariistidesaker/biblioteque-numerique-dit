@@ -70,7 +70,12 @@ const Dashboard = () => {
     }
   };
 
-  if (isLoading) return <div className="loading-state">Chargement du dashboard...</div>;
+  if (isLoading) return (
+    <div className="loader-container">
+      <div className="spinner"></div>
+      <p className="loading-text">Chargement du dashboard...</p>
+    </div>
+  );
 
   return (
     <div className="dashboard-container">

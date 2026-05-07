@@ -138,7 +138,12 @@ const Profil = () => {
   };
 
   if (isLoading) {
-    return <div className="profil-container"><div className="loading-spinner"></div></div>;
+    return (
+      <div className="loader-container">
+        <div className="spinner"></div>
+        <p className="loading-text">Chargement de votre profil...</p>
+      </div>
+    );
   }
 
   if (!profileData) {
