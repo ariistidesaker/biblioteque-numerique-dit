@@ -323,65 +323,74 @@ const Profil = () => {
           </form>
         )}
 
-        {/* Section Mes Emprunts */}
-        <div className="profil-details card glass-panel mt-4" style={{ marginTop: '2rem' }}>
-          <h2>Mes Emprunts</h2>
-          <div className="detail-divider"></div>
-          {emprunts.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>Vous n'avez aucun emprunt en cours ou passé.</p>
-          ) : (
-            <div className="emprunts-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {emprunts.map(emprunt => {
-                const livre = livres[emprunt.livre_id];
-                const isRetourne = !!emprunt.date_retour_effective;
-                const isRetard = emprunt.en_retard;
-                
-                return (
-                  <div key={emprunt.id} style={{ 
-                    padding: '1rem', 
-                    borderRadius: '8px', 
-                    background: 'var(--surface-light)',
-                    border: `1px solid ${isRetard ? '#ef4444' : isRetourne ? 'var(--border)' : '#10b981'}`,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <h4 style={{ margin: 0 }}>{livre ? livre.titre : `Livre #${emprunt.livre_id}`}</h4>
-                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        Emprunté le {new Date(emprunt.date_emprunt).toLocaleDateString()}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: isRetard ? '#ef4444' : 'var(--text-muted)' }}>
-                        Retour prévu le {new Date(emprunt.date_retour_prevue).toLocaleDateString()}
-                      </p>
+        {/* Section Mes Emprunts - Visible uniquement pour Etudiants et Professeurs */}
+        {(profileData.type_utilisateur === 'ETUDIANT' || profileData.type_utilisateur === 'PROFESSEUR') && (
+          <div className="profil-details card glass-panel mt-4" style={{ marginTop: '2rem' }}>
+            <h2>Mes Emprunts</h2>
+            <div className="detail-divider"></div>
+            {emprunts.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Vous n'avez aucun emprunt en cours ou passé.</p>
+            ) : (
+              <div className="emprunts-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {emprunts.map(emprunt => {
+                  const livre = livres[emprunt.livre_id];
+                  const isRetourne = !!emprunt.date_retour_effective;
+                  const isRetard = emprunt.en_retard;
+                  
+                  return (
+                    <div key={emprunt.id} style={{ 
+                      padding: '1rem', 
+                      borderRadius: '8px', 
+                      background: 'var(--surface-light)',
+                      border: `1px solid ${isRetard ? '#ef4444' : isRetourne ? 'var(--border)' : '#10b981'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <h4 style={{ margin: 0 }}>{livre ? livre.titre : `Livre #${emprunt.livre_id}`}</h4>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          Emprunté le {new Date(emprunt.date_emprunt).toLocaleDateString()}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: isRetard ? '#ef4444' : 'var(--text-muted)' }}>
+                          Retour prévu le {new Date(emprunt.date_retour_prevue).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        {isRetourne ? (
+                          <span style={{ padding: '0.25rem 0.75rem', background: '#e5e7eb', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            Retourné le {new Date(emprunt.date_retour_effective).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                            <span className={`badge ${isRetard ? 'badge-danger' : 'badge-warning'}`}>
+                              {isRetard ? 'En retard' : 'En cours'}
+                            </span>
+                            {profileData.type_utilisateur === 'PERSONNEL' && (
+                              <button 
+                                className="btn btn-outline" 
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                                onClick={async () => {
+                                  try {
+                                    await empruntsService.retournerLivre(emprunt.id);
+                                    toast.success("Livre rendu avec succès !");
+                                    fetchProfile(user.id_utilisateur);
+                                  } catch(e) { toast.error(e.message); }
+                                }}
+                              >
+                                Marquer comme rendu
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      {isRetourne ? (
-                        <span style={{ padding: '0.25rem 0.75rem', background: '#e5e7eb', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                          Retourné le {new Date(emprunt.date_retour_effective).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        <button 
-                          className="btn btn-outline" 
-                          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderColor: isRetard ? '#ef4444' : 'var(--primary)', color: isRetard ? '#ef4444' : 'var(--primary)' }}
-                          onClick={async () => {
-                            try {
-                              await empruntsService.retournerLivre(emprunt.id);
-                              toast.success("Livre rendu avec succès !");
-                              fetchProfile(user.id_utilisateur); // Rafraîchir
-                            } catch(e) { toast.error(e.message); }
-                          }}
-                        >
-                          Rendre le livre
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>

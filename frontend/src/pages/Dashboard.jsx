@@ -11,6 +11,14 @@ const Dashboard = () => {
   const [books, setBooks] = useState({});
   const [users, setUsers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  
+  // States pour la pagination et les filtres
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
+  const [selectedStatut, setSelectedStatut] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
   const navigate = useNavigate();
 
   const currentUser = authService.getCurrentUser();
@@ -28,23 +36,32 @@ const Dashboard = () => {
     }
 
     fetchDashboardData();
-  }, [currentUser?.id_utilisateur, isPersonnel, navigate]);
+  }, [currentUser?.id_utilisateur, isPersonnel, navigate, page, selectedStatut]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedStatut]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // 1. Charger tous les emprunts
-      const empruntsData = await empruntsService.getEmprunts();
+      // 1. Charger les emprunts paginés et filtrés par statut
+      const skip = (page - 1) * limit;
+      const filters = {};
+      if (selectedStatut) filters.statut = selectedStatut;
+      
+      const empruntsData = await empruntsService.getEmprunts(filters, skip, limit);
       setEmprunts(empruntsData);
+      setHasMore(empruntsData.length === limit);
 
-      // 2. Charger tous les livres pour le mapping (optimisable mais ok ici)
-      const booksList = await livresService.getLivres();
+      // 2. Charger les livres pour le mapping
+      const booksList = await livresService.getLivres(0, 500);
       const booksMap = {};
       booksList.forEach(b => booksMap[b.id] = b);
       setBooks(booksMap);
 
       // 3. Charger tous les utilisateurs pour le mapping
-      // Note: On suppose qu'il y a un endpoint /utilisateurs/ (accessible au personnel)
       const response = await fetch('http://localhost:8002/utilisateurs/');
       if (response.ok) {
         const usersList = await response.json();
@@ -70,6 +87,14 @@ const Dashboard = () => {
     }
   };
 
+  const filteredEmprunts = emprunts.filter(e => {
+    const user = users[e.utilisateur_id];
+    const book = books[e.livre_id];
+    
+    const searchString = `${user?.nom_prenom || ''} ${book?.titre || ''}`.toLowerCase();
+    return searchString.includes(searchTerm.toLowerCase());
+  });
+
   if (isLoading) return (
     <div className="loader-container">
       <div className="spinner"></div>
@@ -87,15 +112,37 @@ const Dashboard = () => {
       <div className="dashboard-stats grid">
         <div className="stat-card glass-panel">
           <span className="stat-value">{emprunts.length}</span>
-          <span className="stat-label">Total Emprunts</span>
+          <span className="stat-label">Emprunts (Page)</span>
         </div>
         <div className="stat-card glass-panel">
           <span className="stat-value">{emprunts.filter(e => !e.date_retour_effective).length}</span>
-          <span className="stat-label">En Cours</span>
+          <span className="stat-label">En Cours (Page)</span>
         </div>
         <div className="stat-card glass-panel">
           <span className="stat-value">{emprunts.filter(e => e.en_retard && !e.date_retour_effective).length}</span>
-          <span className="stat-label" style={{color: '#ef4444'}}>En Retard</span>
+          <span className="stat-label" style={{color: '#ef4444'}}>En Retard (Page)</span>
+        </div>
+      </div>
+
+      {/* Barre de Filtres */}
+      <div className="dashboard-filters glass-panel animate-fade-in">
+        <div className="search-box">
+          <span>🔍</span>
+          <input 
+            type="text" 
+            placeholder="Rechercher un utilisateur ou un livre..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="status-filter">
+          <label>Statut:</label>
+          <select value={selectedStatut} onChange={(e) => setSelectedStatut(e.target.value)}>
+            <option value="">Tous les emprunts</option>
+            <option value="en_cours">En Cours</option>
+            <option value="retourne">Retournés</option>
+            <option value="en_retard">En Retard</option>
+          </select>
         </div>
       </div>
 
@@ -112,7 +159,7 @@ const Dashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {emprunts.map(e => (
+            {filteredEmprunts.map(e => (
               <tr key={e.id}>
                 <td>{new Date(e.date_emprunt).toLocaleDateString()}</td>
                 <td>
@@ -138,7 +185,7 @@ const Dashboard = () => {
                   )}
                 </td>
                 <td>
-                  {!e.date_retour_effective && (
+                  {!e.date_retour_effective && currentUser?.type_utilisateur === 'PERSONNEL' && (
                     <button 
                       className="btn btn-primary btn-sm"
                       onClick={() => handleMarquerRetour(e.id)}
@@ -151,9 +198,27 @@ const Dashboard = () => {
             ))}
           </tbody>
         </table>
-        {emprunts.length === 0 && (
-          <div className="empty-table">Aucun emprunt enregistré.</div>
+        {filteredEmprunts.length === 0 && (
+          <div className="empty-table">Aucun emprunt ne correspond à vos filtres.</div>
         )}
+      </div>
+
+      <div className="pagination-controls animate-fade-in">
+        <button 
+          className={`btn btn-outline ${page === 1 ? 'btn-disabled' : ''}`}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          Précédent
+        </button>
+        <span className="page-info">Page <strong>{page}</strong></span>
+        <button 
+          className={`btn btn-outline ${!hasMore ? 'btn-disabled' : ''}`}
+          onClick={() => setPage(p => p + 1)}
+          disabled={!hasMore}
+        >
+          Suivant
+        </button>
       </div>
     </div>
   );

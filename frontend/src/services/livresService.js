@@ -7,9 +7,11 @@ export const livresService = {
    * @param {number} limit 
    * @returns {Promise<Array>}
    */
-  async getLivres(skip = 0, limit = 100) {
+  async getLivres(skip = 0, limit = 100, categorie = null) {
     try {
-      const response = await fetch(`${API_URL}/livres/?skip=${skip}&limit=${limit}`);
+      let url = `${API_URL}/livres/?skip=${skip}&limit=${limit}`;
+      if (categorie) url += `&categorie=${encodeURIComponent(categorie)}`;
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Erreur lors de la récupération des livres');
       return await response.json();
     } catch (error) {

@@ -44,11 +44,14 @@ export const empruntsService = {
    * @param {Object} filters { utilisateur_id, livre_id, statut }
    * @returns {Promise<Array>}
    */
-  async getEmprunts(filters = {}) {
+  async getEmprunts(filters = {}, skip = 0, limit = 100) {
     const queryParams = new URLSearchParams();
     if (filters.utilisateur_id) queryParams.append('utilisateur_id', filters.utilisateur_id);
     if (filters.livre_id) queryParams.append('livre_id', filters.livre_id);
     if (filters.statut) queryParams.append('statut', filters.statut);
+    
+    queryParams.append('skip', skip);
+    queryParams.append('limit', limit);
 
     const url = `${API_URL}/emprunts/?${queryParams.toString()}`;
     const response = await fetch(url);

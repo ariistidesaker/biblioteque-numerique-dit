@@ -48,6 +48,7 @@ def create_livre(livre: schemas.LivreCreate, db: Session = Depends(get_db)):
         description=livre.description,
         image_url=livre.image_url,
         exemplaires_totaux=livre.exemplaires_totaux,
+        categorie=livre.categorie,
         disponible=livre.exemplaires_totaux > 0,
     )
     db.add(db_livre)
@@ -68,9 +69,13 @@ def create_livre(livre: schemas.LivreCreate, db: Session = Depends(get_db)):
 def list_livres(
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
     limit: int = Query(100, ge=1, le=500, description="Nombre max d'éléments à retourner"),
+    categorie: Optional[str] = Query(None, description="Filtrer par catégorie"),
     db: Session = Depends(get_db)
 ):
-    return db.query(models.Livre).offset(skip).limit(limit).all()
+    query = db.query(models.Livre)
+    if categorie:
+        query = query.filter(models.Livre.categorie == categorie)
+    return query.offset(skip).limit(limit).all()
 
 
 # ══════════════════════════════════════════════
@@ -145,6 +150,8 @@ def update_livre(livre_id: int, data: schemas.LivreUpdate, db: Session = Depends
         livre.description = data.description
     if data.image_url is not None:
         livre.image_url = data.image_url
+    if data.categorie is not None:
+        livre.categorie = data.categorie
     if data.exemplaires_totaux is not None:
         livre.exemplaires_totaux = data.exemplaires_totaux
         # Mise à jour automatique de la disponibilité
