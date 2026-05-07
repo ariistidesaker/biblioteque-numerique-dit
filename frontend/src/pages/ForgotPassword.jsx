@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Login.css'; // On réutilise les styles du Login
+import { authService } from '../services/authService';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulation d'une requête API d'envoi d'email
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await authService.forgotPassword(email);
       setIsSent(true);
-    }, 1500);
+    } catch (err) {
+      setError(err.message || 'Une erreur est survenue.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -29,6 +35,8 @@ const ForgotPassword = () => {
           <h2>Mot de passe oublié</h2>
           <p>Entrez votre adresse email pour recevoir un lien de réinitialisation.</p>
         </div>
+
+        {error && <div className="error-message" style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.9rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>{error}</div>}
 
         {!isSent ? (
           <form onSubmit={handleSubmit} className="login-form">

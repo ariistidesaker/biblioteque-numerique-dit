@@ -6,11 +6,16 @@ import Catalogue from './pages/Catalogue';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Confirmation from './pages/Confirmation';
+import Profil from './pages/Profil';
+import { Toaster } from 'react-hot-toast';
 import './index.css';
 
 function App() {
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' } }} />
       <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Navbar />
         <main className="main-content" style={{ flex: 1 }}>
@@ -20,8 +25,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/inscription" element={<Register />} />
             <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
-            {/* Pages futures */}
-            <Route path="/profil" element={<div style={{padding: '100px', textAlign: 'center'}}><h2>Profil (À venir)</h2></div>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/confirmation" element={<Confirmation />} />
+            <Route path="/profil" element={<Profil />} />
           </Routes>
         </main>
         <Footer />

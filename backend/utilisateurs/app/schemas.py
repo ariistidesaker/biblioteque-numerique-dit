@@ -37,6 +37,20 @@ class UtilisateurCreate(BaseModel):
     profil_professeur: Optional[ProfesseurProfile] = None
     profil_personnel:  Optional[PersonnelProfile]  = None
 
+class LoginRequest(BaseModel):
+    email: str
+    mot_de_passe: str
+
+class ConfirmEmailRequest(BaseModel):
+    email: str
+    code: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    nouveau_mot_de_passe: str
 
 # SCHÉMAS DE RÉPONSE
 

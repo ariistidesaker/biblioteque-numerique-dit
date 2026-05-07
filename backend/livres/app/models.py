@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from .database import Base
 
 class Livre(Base):
@@ -9,3 +9,5 @@ class Livre(Base):
     auteur = Column(String, index=True)
     isbn = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    disponible = Column(Boolean, default=True)

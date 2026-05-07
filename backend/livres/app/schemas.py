@@ -8,6 +8,8 @@ class LivreBase(BaseModel):
     auteur: str
     isbn: str
     description: Optional[str] = None
+    image_url: Optional[str] = None
+    disponible: bool = True
 
 
 # CRÉATION
@@ -21,11 +23,14 @@ class LivreUpdate(BaseModel):
     auteur: Optional[str] = None
     isbn: Optional[str] = None
     description: Optional[str] = None
+    image_url: Optional[str] = None
+    disponible: Optional[bool] = None
 
 
 # RÉPONSE
 class LivreResponse(LivreBase):
     id: int
+    disponible: bool
 
     class Config:
         from_attributes = True

@@ -39,7 +39,8 @@ class Utilisateur(Base):
     mot_de_passe_hash = Column(Text, nullable=False)
     nom_prenom        = Column(String, nullable=False, index=True)
     type_utilisateur  = Column(Enum(TypeUtilisateur), nullable=False)
-    status            = Column(Enum(StatusUtilisateur), default=StatusUtilisateur.actif, nullable=False)
+    status            = Column(Enum(StatusUtilisateur), default=StatusUtilisateur.en_attente, nullable=False)
+    code_confirmation = Column(String, nullable=True)
     date_creation     = Column(DateTime, default=datetime.utcnow, nullable=False)
     date_modification = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

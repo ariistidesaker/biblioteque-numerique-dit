@@ -9,10 +9,20 @@ from .database import engine, get_db
 # Création des tables
 models.Base.metadata.create_all(bind=engine)
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="Service Livres",
     description="Gestion du catalogue de la bibliothèque académique : ajout, modification, suppression et recherche de livres.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -36,6 +46,8 @@ def create_livre(livre: schemas.LivreCreate, db: Session = Depends(get_db)):
         auteur=livre.auteur,
         isbn=livre.isbn,
         description=livre.description,
+        image_url=livre.image_url,
+        disponible=livre.disponible,
     )
     db.add(db_livre)
     db.commit()
@@ -61,27 +73,30 @@ def list_livres(
 
 
 # ══════════════════════════════════════════════
-# GET /livres/search — Recherche par titre/auteur/ISBN
+# GET /livres/recherche — Recherche multicritères
 # ══════════════════════════════════════════════
 
 @app.get(
-    "/livres/search",
+    "/livres/recherche",
     response_model=List[schemas.LivreResponse],
     summary="Rechercher des livres par titre, auteur ou ISBN"
 )
-def search_livres(
-    q: str = Query(..., min_length=1, description="Terme de recherche"),
+def recherche_livres(
+    titre: Optional[str] = Query(None, description="Filtre par titre"),
+    auteur: Optional[str] = Query(None, description="Filtre par auteur"),
+    isbn: Optional[str] = Query(None, description="Filtre par ISBN"),
     db: Session = Depends(get_db)
 ):
-    terme = f"%{q}%"
-    resultats = db.query(models.Livre).filter(
-        or_(
-            models.Livre.titre.ilike(terme),
-            models.Livre.auteur.ilike(terme),
-            models.Livre.isbn.ilike(terme),
-        )
-    ).all()
-    return resultats
+    query = db.query(models.Livre)
+    
+    if titre:
+        query = query.filter(models.Livre.titre.ilike(f"%{titre}%"))
+    if auteur:
+        query = query.filter(models.Livre.auteur.ilike(f"%{auteur}%"))
+    if isbn:
+        query = query.filter(models.Livre.isbn.ilike(f"%{isbn}%"))
+        
+    return query.all()
 
 
 # ══════════════════════════════════════════════
@@ -127,6 +142,10 @@ def update_livre(livre_id: int, data: schemas.LivreUpdate, db: Session = Depends
         livre.isbn = data.isbn
     if data.description is not None:
         livre.description = data.description
+    if data.image_url is not None:
+        livre.image_url = data.image_url
+    if data.disponible is not None:
+        livre.disponible = data.disponible
 
     db.commit()
     db.refresh(livre)

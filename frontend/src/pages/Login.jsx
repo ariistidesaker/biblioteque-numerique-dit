@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 import './Login.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulation d'une requête API
-    setTimeout(() => {
+    try {
+      await authService.login(email, password);
+      navigate('/catalogue'); // Redirection après connexion réussie
+    } catch (err) {
+      setError(err.message || 'Email ou mot de passe incorrect.');
+    } finally {
       setIsLoading(false);
-      // Redirection après connexion simulée
-      navigate('/catalogue');
-    }, 1500);
+    }
   };
 
   return (
@@ -34,6 +39,12 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
+          {error && (
+            <div className="error-message" style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', border: '1px solid #fca5a5' }}>
+              {error}
+            </div>
+          )}
+
           <div className="form-group">
             <label htmlFor="email">Adresse Email</label>
             <div className="input-wrapper">

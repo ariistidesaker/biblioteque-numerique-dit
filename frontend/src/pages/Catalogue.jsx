@@ -1,28 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Catalogue.css';
-
-// Mock data (en attendant de connecter l'API Livres)
-const mockBooks = [
-  { id: 1, titre: "L'Art de la Guerre", auteur: "Sun Tzu", categorie: "Stratégie", annee: 2020, dispo: true, cover: "gradient-1" },
-  { id: 2, titre: "Clean Code", auteur: "Robert C. Martin", categorie: "Programmation", annee: 2008, dispo: false, cover: "gradient-2" },
-  { id: 3, titre: "Sapiens", auteur: "Yuval Noah Harari", categorie: "Histoire", annee: 2011, dispo: true, cover: "gradient-3" },
-  { id: 4, titre: "Design Patterns", auteur: "Gang of Four", categorie: "Programmation", annee: 1994, dispo: true, cover: "gradient-4" },
-  { id: 5, titre: "Le Prince", auteur: "Nicolas Machiavel", categorie: "Philosophie", annee: 1532, dispo: true, cover: "gradient-5" },
-  { id: 6, titre: "Introduction to Algorithms", auteur: "Thomas H. Cormen", categorie: "Programmation", annee: 2009, dispo: false, cover: "gradient-6" },
-];
-
-const categories = ["Tous", "Programmation", "Histoire", "Stratégie", "Philosophie"];
+import { livresService } from '../services/livresService';
+import { authService } from '../services/authService';
+import { empruntsService } from '../services/empruntsService';
+import toast from 'react-hot-toast';
 
 const Catalogue = () => {
+  const [books, setBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Tous");
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  const [currentBook, setCurrentBook] = useState({ titre: '', auteur: '', isbn: '', description: '' });
 
-  const filteredBooks = mockBooks.filter(book => {
-    const matchesSearch = book.titre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          book.auteur.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = activeCategory === "Tous" || book.categorie === activeCategory;
-    return matchesSearch && matchesCat;
+  const currentUser = authService.getCurrentUser();
+  const isPersonnel = currentUser?.type_utilisateur === 'PERSONNEL' || currentUser?.type_utilisateur === 'ADMIN';
+
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    setIsLoading(true);
+    try {
+      const data = await livresService.getLivres();
+      setBooks(data);
+    } catch (error) {
+      console.error("Erreur de chargement", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredBooks = books.filter(book => {
+    return book.titre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           book.auteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           (book.isbn && book.isbn.includes(searchTerm));
   });
+
+  const handleOpenModal = (mode, book = { titre: '', auteur: '', isbn: '', description: '' }) => {
+    setModalMode(mode);
+    setCurrentBook(book);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setCurrentBook({ titre: '', auteur: '', isbn: '', description: '' });
+  };
+
+  const handleSaveBook = async (e) => {
+    e.preventDefault();
+    try {
+      if (modalMode === 'add') {
+        await livresService.createLivre(currentBook);
+        toast.success("Livre ajouté avec succès !");
+      } else {
+        await livresService.updateLivre(currentBook.id, currentBook);
+        toast.success("Livre modifié avec succès !");
+      }
+      handleCloseModal();
+      fetchBooks();
+    } catch (error) {
+      toast.error("Erreur: " + error.message);
+    }
+  };
+
+  const handleDeleteBook = async (id) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce livre ?")) {
+      try {
+        await livresService.deleteLivre(id);
+        toast.success("Livre supprimé !");
+        fetchBooks();
+      } catch (error) {
+        toast.error("Erreur lors de la suppression: " + error.message);
+      }
+    }
+  };
+
+  const handleEmprunter = async (livreId) => {
+    if (!currentUser) {
+      toast.error("Vous devez être connecté pour emprunter un livre.");
+      return;
+    }
+    try {
+      const dateRetourPrevue = new Date();
+      dateRetourPrevue.setDate(dateRetourPrevue.getDate() + 14); // Emprunt de 14 jours par défaut
+      
+      await empruntsService.createEmprunt({
+        livre_id: livreId,
+        utilisateur_id: currentUser.id_utilisateur,
+        date_retour_prevue: dateRetourPrevue.toISOString()
+      });
+      toast.success("Livre emprunté avec succès ! 🎉");
+      fetchBooks(); // Rafraîchir pour voir le nouveau statut de disponibilité
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   return (
     <div className="catalogue-container">
@@ -34,60 +110,102 @@ const Catalogue = () => {
           <span className="search-icon">🔍</span>
           <input 
             type="text" 
-            placeholder="Rechercher par titre, auteur..." 
+            placeholder="Rechercher par titre, auteur, ISBN..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
         </div>
 
-        <div className="categories-filter">
-          {categories.map(cat => (
-            <button 
-              key={cat} 
-              className={`filter-btn ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="books-grid">
-        {filteredBooks.map((book, index) => (
-          <div 
-            key={book.id} 
-            className="book-card glass-panel animate-fade-in"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <div className={`book-cover ${book.cover}`}>
-              {!book.dispo && <div className="status-badge unavailable">Indisponible</div>}
-              {book.dispo && <div className="status-badge available">Disponible</div>}
-            </div>
-            
-            <div className="book-info">
-              <span className="book-category">{book.categorie}</span>
-              <h3 className="book-title">{book.titre}</h3>
-              <p className="book-author">{book.auteur} • {book.annee}</p>
-              
-              <div className="book-actions">
-                <button 
-                  className={`btn ${book.dispo ? 'btn-primary' : 'btn-outline'} btn-full`}
-                  disabled={!book.dispo}
-                >
-                  {book.dispo ? 'Emprunter' : 'Sur Liste d\'Attente'}
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {filteredBooks.length === 0 && (
-          <div className="no-results">
-            <p>Aucun livre ne correspond à votre recherche. 😔</p>
-          </div>
+        {isPersonnel && (
+          <button className="btn btn-primary animate-fade-in" onClick={() => handleOpenModal('add')} style={{ marginBottom: '2rem' }}>
+            + Ajouter un Livre
+          </button>
         )}
       </div>
+
+      {isLoading ? (
+        <div className="loading-state">Chargement des livres...</div>
+      ) : (
+        <div className="books-grid">
+          {filteredBooks.map((book, index) => (
+            <div 
+              key={book.id} 
+              className="book-card glass-panel animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className={`book-cover ${!book.image_url ? `gradient-${(book.id % 6) + 1}` : ''}`} style={book.image_url ? { padding: 0, overflow: 'hidden' } : {}}>
+                {book.image_url && <img src={book.image_url} alt={`Couverture de ${book.titre}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                <div className={`status-badge ${book.disponible ? 'available' : 'unavailable'}`} style={book.image_url ? { position: 'absolute', top: '10px', right: '10px' } : {}}>
+                  {book.disponible ? 'Disponible' : 'Indisponible'}
+                </div>
+              </div>
+              
+              <div className="book-info">
+                <span className="book-category">Livre</span>
+                <h3 className="book-title">{book.titre}</h3>
+                <p className="book-author">{book.auteur}</p>
+                <p className="book-isbn" style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>ISBN: {book.isbn}</p>
+                
+                <div className="book-actions">
+                  <button 
+                    className={`btn ${book.disponible ? 'btn-primary' : 'btn-disabled'} btn-full`}
+                    onClick={() => book.disponible && handleEmprunter(book.id)}
+                    disabled={!book.disponible}
+                  >
+                    {book.disponible ? 'Emprunter' : 'Déjà Emprunté'}
+                  </button>
+                  {isPersonnel && (
+                    <div className="admin-actions" style={{display: 'flex', gap: '0.5rem', marginTop: '0.5rem'}}>
+                      <button className="btn btn-outline btn-full" onClick={() => handleOpenModal('edit', book)}>Modifier</button>
+                      <button className="btn btn-outline btn-full" style={{borderColor: '#ef4444', color: '#ef4444'}} onClick={() => handleDeleteBook(book.id)}>Supprimer</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredBooks.length === 0 && (
+            <div className="no-results">
+              <p>Aucun livre ne correspond à votre recherche. 😔</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel animate-fade-in">
+            <h2>{modalMode === 'add' ? 'Ajouter un Livre' : 'Modifier le Livre'}</h2>
+            <form onSubmit={handleSaveBook} className="modal-form">
+              <div className="form-group">
+                <label>Titre</label>
+                <input required type="text" value={currentBook.titre} onChange={e => setCurrentBook({...currentBook, titre: e.target.value})} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label>Auteur</label>
+                <input required type="text" value={currentBook.auteur} onChange={e => setCurrentBook({...currentBook, auteur: e.target.value})} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label>ISBN</label>
+                <input required type="text" value={currentBook.isbn} onChange={e => setCurrentBook({...currentBook, isbn: e.target.value})} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label>URL de l'image</label>
+                <input type="url" placeholder="https://..." value={currentBook.image_url || ''} onChange={e => setCurrentBook({...currentBook, image_url: e.target.value})} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea rows="4" value={currentBook.description || ''} onChange={e => setCurrentBook({...currentBook, description: e.target.value})} className="form-input"></textarea>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-outline" onClick={handleCloseModal}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

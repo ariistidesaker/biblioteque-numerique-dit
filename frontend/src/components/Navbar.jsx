@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 import './Navbar.css';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
+
+  // On récupère l'utilisateur connecté
+  const user = authService.getCurrentUser();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -12,6 +17,11 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/');
+  };
 
   return (
     <header className={`navbar ${scrolled ? 'scrolled glass-panel' : ''}`}>
@@ -28,13 +38,24 @@ const Navbar = () => {
           <NavLink to="/catalogue" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             Catalogue
           </NavLink>
-          <NavLink to="/profil" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            Mon Profil
-          </NavLink>
+          {user && (
+            <NavLink to="/profil" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+              Mon Profil
+            </NavLink>
+          )}
         </nav>
 
-        <div className="navbar-actions">
-          <Link to="/login" className="btn btn-primary btn-sm">Se Connecter</Link>
+        <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {user ? (
+            <>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text)', fontWeight: '600' }}>
+                👤 {user.nom_prenom || 'Utilisateur'}
+              </span>
+              <button onClick={handleLogout} className="btn btn-outline btn-sm" style={{ padding: '0.4rem 1rem' }}>Déconnexion</button>
+            </>
+          ) : (
+            <Link to="/login" className="btn btn-primary btn-sm">Se Connecter</Link>
+          )}
         </div>
       </div>
     </header>

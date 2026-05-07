@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 import './Login.css'; // On réutilise les styles du Login pour une cohérence visuelle
 
 const Register = () => {
@@ -8,24 +9,35 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    type: 'Etudiant'
+    type: 'ETUDIANT'
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulation d'une requête API
-    setTimeout(() => {
+    try {
+      await authService.register({
+        email: formData.email,
+        mot_de_passe: formData.password,
+        nom_prenom: formData.nom,
+        type_utilisateur: formData.type
+      });
+      // Redirection vers la page de confirmation avec l'email
+      navigate('/confirmation', { state: { email: formData.email } });
+    } catch (err) {
+      setError(err.message || 'Erreur lors de la création du compte.');
+    } finally {
       setIsLoading(false);
-      navigate('/login');
-    }, 1500);
+    }
   };
 
   return (
@@ -41,6 +53,12 @@ const Register = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
+          {error && (
+            <div className="error-message" style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', border: '1px solid #fca5a5' }}>
+              {error}
+            </div>
+          )}
+
           <div className="form-group">
             <label htmlFor="nom">Nom complet</label>
             <div className="input-wrapper">
@@ -82,9 +100,9 @@ const Register = () => {
                 className="custom-select"
                 required
               >
-                <option value="Etudiant">Étudiant</option>
-                <option value="Professeur">Professeur</option>
-                <option value="Personnel">Personnel</option>
+                <option value="ETUDIANT">Étudiant</option>
+                <option value="PROFESSEUR">Professeur</option>
+                <option value="PERSONNEL">Personnel</option>
               </select>
             </div>
           </div>
