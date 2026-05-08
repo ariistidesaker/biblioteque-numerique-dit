@@ -151,6 +151,37 @@ cd ..
 
 ---
 
+## 🔐 Configuration des Variables d'Environnement
+
+Le projet utilise un fichier `.env` à la racine pour centraliser toutes les configurations. Ce fichier est indispensable pour le bon fonctionnement des services.
+
+1. Créez un fichier `.env` à la racine du projet (copiez le contenu ci-dessous ou utilisez `.env.example` s'il est fourni) :
+
+```env
+# Configuration de la Base de Données (Locale)
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=library_user
+DB_PASS=library_pass
+
+# URLs des Microservices (Backend)
+LIVRES_SERVICE_URL=http://localhost:8001
+UTILISATEURS_SERVICE_URL=http://localhost:8002
+EMPRUNTS_SERVICE_URL=http://localhost:8003
+RECOMMANDATION_SERVICE_URL=http://localhost:8004
+
+# Variables d'environnement pour le Frontend (Vite)
+VITE_LIVRES_API_URL=http://localhost:8001
+VITE_UTILISATEURS_API_URL=http://localhost:8002
+VITE_EMPRUNTS_API_URL=http://localhost:8003
+VITE_RECOMMANDATION_API_URL=http://localhost:8004
+```
+
+> [!IMPORTANT]
+> Pour des raisons de sécurité, les URLs de base de données ne sont plus codées en dur dans le code. Si le fichier `.env` n'est pas correctement configuré, les services backend ne démarreront pas.
+
+---
+
 ## 🚀 Démarrage Rapide (Mode Développement)
 
 Pour développer et tester les APIs avec rechargement à chaud (Hot-Reload) :
@@ -193,7 +224,7 @@ docker compose up -d db
 # 2. Se placer dans le dossier du service concerné
 cd backend/utilisateurs
 
-# 3. Définir l'URL de la base de données avec le port mappé en local (5433)
+# 3. Définir l'URL de la base de données (manuellement ou via chargement du .env)
 $env:DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/utilisateurs_db"
 
 # 4. Lancer le serveur (Port 8002 pour Utilisateurs)
