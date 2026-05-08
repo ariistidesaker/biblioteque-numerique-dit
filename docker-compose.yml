@@ -4,14 +4,13 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: library_user
-      POSTGRES_PASSWORD: library_pass
-      # POSTGRES_DB n'est plus utilisé ici pour permettre à init.sql de créer plusieurs bases
+      POSTGRES_USER: ${DB_USER:-library_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-library_pass}
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5433:5432"
+      - "${DB_PORT:-5433}:5432"
     networks:
       - library-net
 
@@ -20,7 +19,7 @@ services:
     ports:
       - "8001:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/livres_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/livres_db
     depends_on:
       - db
     networks:
@@ -31,7 +30,7 @@ services:
     ports:
       - "8002:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/utilisateurs_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/utilisateurs_db
     depends_on:
       - db
     networks:
@@ -42,7 +41,7 @@ services:
     ports:
       - "8003:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/emprunts_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/emprunts_db
       LIVRES_SERVICE_URL: http://livres:8000
       UTILISATEURS_SERVICE_URL: http://utilisateurs:8000
     depends_on:
@@ -60,7 +59,7 @@ services:
       - model-storage:/app/model
     environment:
       MODEL_PATH: /app/model/model.pkl
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/recommandation_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/recommandation_db
     depends_on:
       - db
     networks:

@@ -62,7 +62,8 @@ const Dashboard = () => {
       setBooks(booksMap);
 
       // 3. Charger tous les utilisateurs pour le mapping
-      const response = await fetch('http://localhost:8002/utilisateurs/');
+      const usersUrl = import.meta.env.VITE_UTILISATEURS_API_URL || 'http://localhost:8002';
+      const response = await fetch(`${usersUrl}/utilisateurs/`);
       if (response.ok) {
         const usersList = await response.json();
         const usersMap = {};

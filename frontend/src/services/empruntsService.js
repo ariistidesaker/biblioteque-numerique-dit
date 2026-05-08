@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8003'; // Port du service emprunts défini dans start-local.sh
+const API_URL = import.meta.env.VITE_EMPRUNTS_API_URL || 'http://localhost:8003';
 
 export const empruntsService = {
   /**

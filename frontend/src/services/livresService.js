@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8001'; // Port du service livres défini dans docker-compose.yml
+const API_URL = import.meta.env.VITE_LIVRES_API_URL || 'http://localhost:8001';
 
 export const livresService = {
   /**

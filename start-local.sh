@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Chargement des variables d'environnement depuis le fichier .env à la racine
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+    echo "✅ Variables d'environnement chargées depuis .env"
+else
+    echo "⚠️ Fichier .env non trouvé à la racine. Utilisation des valeurs par défaut."
+    # Valeurs par défaut si le fichier .env est absent
+    DB_HOST=${DB_HOST:-localhost}
+    DB_PORT=${DB_PORT:-5433}
+    DB_USER=${DB_USER:-library_user}
+    DB_PASS=${DB_PASS:-library_pass}
+fi
+
 echo "🚀 Démarrage de la Base de Données PostgreSQL..."
 docker compose up -d db
 
@@ -8,9 +21,8 @@ sleep 10
 
 echo "📚 Lancement du Service Livres (Port 8001)..."
 cd backend/livres
-# Compatible Windows (Git Bash) et Linux/Mac
 source venv/Scripts/activate 2>/dev/null || source venv/bin/activate
-export DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/livres_db"
+export DATABASE_URL="postgresql+psycopg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/livres_db"
 uvicorn app.main:app --reload --port 8001 &
 LIVRES_PID=$!
 cd ../..
@@ -18,7 +30,7 @@ cd ../..
 echo "👥 Lancement du Service Utilisateurs (Port 8002)..."
 cd backend/utilisateurs
 source venv/Scripts/activate 2>/dev/null || source venv/bin/activate
-export DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/utilisateurs_db"
+export DATABASE_URL="postgresql+psycopg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/utilisateurs_db"
 uvicorn app.main:app --reload --port 8002 &
 UTILISATEURS_PID=$!
 cd ../..
@@ -26,7 +38,7 @@ cd ../..
 echo "🔄 Lancement du Service Emprunts (Port 8003)..."
 cd backend/emprunts
 source venv/Scripts/activate 2>/dev/null || source venv/bin/activate
-export DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/emprunts_db"
+export DATABASE_URL="postgresql+psycopg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/emprunts_db"
 export LIVRES_SERVICE_URL="http://localhost:8001"
 export UTILISATEURS_SERVICE_URL="http://localhost:8002"
 uvicorn app.main:app --reload --port 8003 &
@@ -36,7 +48,7 @@ cd ../..
 echo "🤖 Lancement du Service Recommandation (Port 8004)..."
 cd backend/recommandation
 source venv/Scripts/activate 2>/dev/null || source venv/bin/activate
-export DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/recommandation_db"
+export DATABASE_URL="postgresql+psycopg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/recommandation_db"
 uvicorn app.main:app --reload --port 8004 &
 RECO_PID=$!
 cd ../..
@@ -53,7 +65,6 @@ echo "✅ Tous les services sont lancés dans ce terminal !"
 echo "⚠️ Appuyez sur CTRL+C pour tout arrêter proprement."
 echo ""
 
-# Fonction pour fermer tous les services proprement en quittant
 cleanup() {
     echo ""
     echo "🛑 Arrêt de tous les services en cours..."
@@ -61,8 +72,5 @@ cleanup() {
     exit 0
 }
 
-# Capture le signal CTRL+C
 trap cleanup SIGINT SIGTERM
-
-# Empêche le script de se fermer
 wait

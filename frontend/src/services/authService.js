@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8002'; // Port du service utilisateurs défini dans start-local.sh
+const API_URL = import.meta.env.VITE_UTILISATEURS_API_URL || 'http://localhost:8002';
 
 export const authService = {
   /**

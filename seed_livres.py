@@ -1,7 +1,10 @@
+import os
 import requests
 import time
 
-LIVRES_API_URL = "http://localhost:8001/livres/"
+LIVRES_API_URL = os.getenv("LIVRES_API_URL", "http://localhost:8001/livres/")
+if not LIVRES_API_URL.endswith("/"):
+    LIVRES_API_URL += "/"
 
 livres = [
     {
