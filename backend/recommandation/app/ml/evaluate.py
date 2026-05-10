@@ -153,7 +153,11 @@ def main():
         raise FileNotFoundError(args.model)
 
     # Import local pour éviter les imports circulaires
-    from app.ml.train import UserBasedRecommender
+    try:
+        from app.ml.train import UserBasedRecommender
+    except ModuleNotFoundError:
+        from backend.recommandation.app.ml.train import UserBasedRecommender
+        
     model = UserBasedRecommender.load(args.model)
 
     # Chargement des données
