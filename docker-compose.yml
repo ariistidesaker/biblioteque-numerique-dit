@@ -60,8 +60,12 @@ services:
     environment:
       MODEL_PATH: /app/model/model.pkl
       DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/recommandation_db
+      EMPRUNTS_SERVICE_URL: http://emprunts:8000
+      LIVRES_SERVICE_URL: http://livres:8000
     depends_on:
       - db
+      - emprunts
+      - livres
     networks:
       - library-net
 

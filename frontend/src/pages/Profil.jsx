@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { empruntsService } from '../services/empruntsService';
 import { livresService } from '../services/livresService';
+import { recommandationService } from '../services/recommandationService';
 import toast from 'react-hot-toast';
 import './Profil.css';
 
@@ -19,6 +20,11 @@ const Profil = () => {
   // Emprunts state
   const [emprunts, setEmprunts] = useState([]);
   const [livres, setLivres] = useState({});
+
+  // Recommandations state
+  const [recommandations, setRecommandations] = useState([]);
+  const [recoLivres, setRecoLivres] = useState([]);
+  const [recoLoading, setRecoLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -50,7 +56,7 @@ const Profil = () => {
       const data = await authService.getUserProfile(userId);
       setProfileData(data);
       
-      // Charger les emprunts de l'utilisateur
+      // Charger les emprunts et les recommandations
       try {
         const [userEmprunts, allLivres] = await Promise.all([
           empruntsService.getEmpruntsUtilisateur(userId),
@@ -65,6 +71,23 @@ const Profil = () => {
           livresDict[livre.id] = livre;
         });
         setLivres(livresDict);
+
+        // Charger les recommandations personnalisées
+        try {
+          setRecoLoading(true);
+          const recoData = await recommandationService.getRecommandations(userId, 5);
+          const recoIds = recoData.livre_ids || [];
+          // Récupérer les détails des livres recommandés
+          const recoDetails = recoIds
+            .map(id => livresDict[id])
+            .filter(Boolean);
+          setRecommandations(recoIds);
+          setRecoLivres(recoDetails);
+        } catch (recoErr) {
+          console.warn("Service de recommandation indisponible:", recoErr);
+        } finally {
+          setRecoLoading(false);
+        }
       } catch (empruntErr) {
         console.error("Erreur lors du chargement des emprunts:", empruntErr);
       }
@@ -389,6 +412,83 @@ const Profil = () => {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Section Recommandations Personnalisées ── */}
+        {(profileData.type_utilisateur === 'etudiant' || profileData.type_utilisateur === 'professeur') && (
+          <div className="profil-details card glass-panel" style={{ marginTop: '2rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🤖 Livres recommandés pour vous
+            </h2>
+            <div className="detail-divider"></div>
+            {recoLoading ? (
+              <p style={{ color: 'var(--text-muted)' }}>Chargement des recommandations…</p>
+            ) : recoLivres.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>
+                Aucune recommandation disponible pour l'instant — empruntez des livres pour personnaliser vos suggestions !
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                {recoLivres.map(livre => (
+                  <div
+                    key={livre.id}
+                    style={{
+                      background: 'var(--surface)',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border)',
+                      transition: 'transform 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    {livre.image_url ? (
+                      <img
+                        src={livre.image_url}
+                        alt={livre.titre}
+                        style={{ width: '100%', height: '120px', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div style={{
+                        height: '120px',
+                        background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '2.5rem'
+                      }}>📚</div>
+                    )}
+                    <div style={{ padding: '0.75rem' }}>
+                      <p style={{ margin: 0, fontWeight: '600', fontSize: '0.85rem', color: 'var(--text)', lineHeight: '1.3' }}>
+                        {livre.titre}
+                      </p>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {livre.auteur}
+                      </p>
+                      <span style={{
+                        display: 'inline-block',
+                        marginTop: '0.5rem',
+                        padding: '0.15rem 0.5rem',
+                        background: 'rgba(var(--primary-rgb, 99,102,241), 0.15)',
+                        color: 'var(--primary)',
+                        borderRadius: '99px',
+                        fontSize: '0.7rem',
+                        fontWeight: '600'
+                      }}>
+                        {livre.categorie}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+              <Link to="/catalogue" className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}>
+                Voir tout le catalogue →
+              </Link>
+            </div>
           </div>
         )}
 

@@ -1,0 +1,48 @@
+stages:
+
+  # ─────────────────────────────────────────────────────────────
+  # Étape 1 : Prétraitement des données brutes d'emprunts
+  # ─────────────────────────────────────────────────────────────
+  process:
+    cmd: >
+      python -m backend.recommandation.app.ml.process
+      --input  data/raw_loans.csv
+      --output data/processed_loans.csv
+    deps:
+      - backend/recommandation/app/ml/process.py
+      - data/raw_loans.csv
+    outs:
+      - data/processed_loans.csv
+
+  # ─────────────────────────────────────────────────────────────
+  # Étape 2 : Entraînement du modèle
+  # ─────────────────────────────────────────────────────────────
+  train:
+    cmd: >
+      python -m backend.recommandation.app.ml.train
+      --input  data/processed_loans.csv
+      --output models/model.pkl
+    deps:
+      - backend/recommandation/app/ml/train.py
+      - data/processed_loans.csv
+    outs:
+      - models/model.pkl
+
+  # ─────────────────────────────────────────────────────────────
+  # Étape 3 : Évaluation du modèle
+  # ─────────────────────────────────────────────────────────────
+  evaluate:
+    cmd: >
+      python -m backend.recommandation.app.ml.evaluate
+      --data    data/processed_loans.csv
+      --model   models/model.pkl
+      --metrics models/metrics.json
+      --k       5
+    deps:
+      - backend/recommandation/app/ml/evaluate.py
+      - backend/recommandation/app/ml/train.py
+      - data/processed_loans.csv
+      - models/model.pkl
+    metrics:
+      - models/metrics.json:
+          cache: false

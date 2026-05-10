@@ -72,29 +72,33 @@ bibliotheque-numerique-dit/
 │   │   ├── app/
 │   │   │   ├── main.py                 # Routes emprunts, retours, historique, export
 │   │   │   ├── models.py
+│   │   │   ├── schemas.py              # Schémas de données (Pydantic)
 │   │   │   ├── database.py
 │   │   │   └── requirements.txt
 │   │   └── Dockerfile
 │   │
 │   └── recommandation/
 │       ├── app/
-│       │   ├── main.py                 # Application FastAPI (routes reco / santé selon évolution du projet)
-│       │   ├── models.py               # SQLAlchemy (ex. historique d’entraînement)
-│       │   ├── database.py             # Connexion DB si utilisée par le service
-│       │   ├── model_loader.py         # Charge model.pkl depuis le volume
-│       │   ├── ml/                     # Scripts ML (training / preprocessing / évaluation)
-│       │   │   ├── process.py
-│       │   │   ├── train.py
-│       │   │   └── evaluate.py
-│       │   └── requirements.txt
+│       │   ├── main.py                 # API FastAPI (Recommandations personnalisées, Santé, Entraînement)
+│       │   ├── models.py               # SQLAlchemy (Historique d'entraînement)
+│       │   ├── schemas.py              # Schémas Pydantic de réponse
+│       │   ├── database.py             # Connexion PostgreSQL (suivi des versions)
+│       │   ├── model_loader.py         # Chargement paresseux (lazy loading) du modèle ML
+│       │   ├── ml/                     # Pipeline Machine Learning (DVC)
+│       │   │   ├── __init__.py
+│       │   │   ├── process.py          # Prétraitement et Feature Engineering
+│       │   │   ├── train.py            # Entraînement (User-Based Collaborative Filtering)
+│       │   │   └── evaluate.py         # Évaluation des performances (Précision, Recall, Couverture)
+│       │   ├── __init__.py
+│       │   └── requirements.txt        # Dépendances ML (scikit-learn, pandas, numpy...)
 │       └── Dockerfile
 │
-├── data/                               # Données suivies ou ignorées selon `.gitignore` / DVC
-│   └── (pointeurs `.dvc` ou CSV selon votre configuration locale)
+├── data/                               # Données d'entraînement (raw_loans.csv, processed_loans.csv)
+│   └── (fichiers CSV ou pointeurs .dvc)
 │
-├── models/                             # Modèle ML et métriques (géré par DVC dans le projet)
-│   ├── model.pkl.dvc
-│   └── metrics.json.dvc
+├── models/                             # Modèle ML et métriques
+│   ├── model.pkl                       # Modèle entraîné (suivi par DVC)
+│   └── metrics.json                    # Résultats de l'évaluation (suivis par DVC)
 │
 ├── db/
 │   └── init.sql                        # Script d’init au démarrage Postgres (création des bases)
