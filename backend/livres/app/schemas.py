@@ -10,7 +10,7 @@ class LivreBase(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     exemplaires_totaux: int = 1
-    exemplaires_disponibles: int = 1
+    categorie: str = "Autre"
     disponible: bool = True
 
 
@@ -27,7 +27,7 @@ class LivreUpdate(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     exemplaires_totaux: Optional[int] = None
-    exemplaires_disponibles: Optional[int] = None
+    categorie: Optional[str] = None
     disponible: Optional[bool] = None
 
 

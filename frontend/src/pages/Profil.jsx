@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { empruntsService } from '../services/empruntsService';
 import { livresService } from '../services/livresService';
+import { recommandationService } from '../services/recommandationService';
 import toast from 'react-hot-toast';
 import './Profil.css';
 
@@ -19,6 +20,11 @@ const Profil = () => {
   // Emprunts state
   const [emprunts, setEmprunts] = useState([]);
   const [livres, setLivres] = useState({});
+
+  // Recommandations state
+  const [recommandations, setRecommandations] = useState([]);
+  const [recoLivres, setRecoLivres] = useState([]);
+  const [recoLoading, setRecoLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -50,7 +56,7 @@ const Profil = () => {
       const data = await authService.getUserProfile(userId);
       setProfileData(data);
       
-      // Charger les emprunts de l'utilisateur
+      // Charger les emprunts et les recommandations
       try {
         const [userEmprunts, allLivres] = await Promise.all([
           empruntsService.getEmpruntsUtilisateur(userId),
@@ -65,6 +71,23 @@ const Profil = () => {
           livresDict[livre.id] = livre;
         });
         setLivres(livresDict);
+
+        // Charger les recommandations personnalisées
+        try {
+          setRecoLoading(true);
+          const recoData = await recommandationService.getRecommandations(userId, 5);
+          const recoIds = recoData.livre_ids || [];
+          // Récupérer les détails des livres recommandés
+          const recoDetails = recoIds
+            .map(id => livresDict[id])
+            .filter(Boolean);
+          setRecommandations(recoIds);
+          setRecoLivres(recoDetails);
+        } catch (recoErr) {
+          console.warn("Service de recommandation indisponible:", recoErr);
+        } finally {
+          setRecoLoading(false);
+        }
       } catch (empruntErr) {
         console.error("Erreur lors du chargement des emprunts:", empruntErr);
       }
@@ -138,7 +161,12 @@ const Profil = () => {
   };
 
   if (isLoading) {
-    return <div className="profil-container"><div className="loading-spinner"></div></div>;
+    return (
+      <div className="loader-container">
+        <div className="spinner"></div>
+        <p className="loading-text">Chargement de votre profil...</p>
+      </div>
+    );
   }
 
   if (!profileData) {
@@ -318,65 +346,151 @@ const Profil = () => {
           </form>
         )}
 
-        {/* Section Mes Emprunts */}
-        <div className="profil-details card glass-panel mt-4" style={{ marginTop: '2rem' }}>
-          <h2>Mes Emprunts</h2>
-          <div className="detail-divider"></div>
-          {emprunts.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>Vous n'avez aucun emprunt en cours ou passé.</p>
-          ) : (
-            <div className="emprunts-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {emprunts.map(emprunt => {
-                const livre = livres[emprunt.livre_id];
-                const isRetourne = !!emprunt.date_retour_effective;
-                const isRetard = emprunt.en_retard;
-                
-                return (
-                  <div key={emprunt.id} style={{ 
-                    padding: '1rem', 
-                    borderRadius: '8px', 
-                    background: 'var(--surface-light)',
-                    border: `1px solid ${isRetard ? '#ef4444' : isRetourne ? 'var(--border)' : '#10b981'}`,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <h4 style={{ margin: 0 }}>{livre ? livre.titre : `Livre #${emprunt.livre_id}`}</h4>
-                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        Emprunté le {new Date(emprunt.date_emprunt).toLocaleDateString()}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: isRetard ? '#ef4444' : 'var(--text-muted)' }}>
-                        Retour prévu le {new Date(emprunt.date_retour_prevue).toLocaleDateString()}
-                      </p>
+        {/* Section Mes Emprunts - Visible uniquement pour Etudiants et Professeurs */}
+        {(profileData.type_utilisateur === 'ETUDIANT' || profileData.type_utilisateur === 'PROFESSEUR') && (
+          <div className="profil-details card glass-panel mt-4" style={{ marginTop: '2rem' }}>
+            <h2>Mes Emprunts</h2>
+            <div className="detail-divider"></div>
+            {emprunts.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Vous n'avez aucun emprunt en cours ou passé.</p>
+            ) : (
+              <div className="emprunts-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {emprunts.map(emprunt => {
+                  const livre = livres[emprunt.livre_id];
+                  const isRetourne = !!emprunt.date_retour_effective;
+                  const isRetard = emprunt.en_retard;
+                  
+                  return (
+                    <div key={emprunt.id} style={{ 
+                      padding: '1rem', 
+                      borderRadius: '8px', 
+                      background: 'var(--surface-light)',
+                      border: `1px solid ${isRetard ? '#ef4444' : isRetourne ? 'var(--border)' : '#10b981'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <h4 style={{ margin: 0 }}>{livre ? livre.titre : `Livre #${emprunt.livre_id}`}</h4>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          Emprunté le {new Date(emprunt.date_emprunt).toLocaleDateString()}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: isRetard ? '#ef4444' : 'var(--text-muted)' }}>
+                          Retour prévu le {new Date(emprunt.date_retour_prevue).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        {isRetourne ? (
+                          <span style={{ padding: '0.25rem 0.75rem', background: '#e5e7eb', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            Retourné le {new Date(emprunt.date_retour_effective).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                            <span className={`badge ${isRetard ? 'badge-danger' : 'badge-warning'}`}>
+                              {isRetard ? 'En retard' : 'En cours'}
+                            </span>
+                            {profileData.type_utilisateur === 'PERSONNEL' && (
+                              <button 
+                                className="btn btn-outline" 
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                                onClick={async () => {
+                                  try {
+                                    await empruntsService.retournerLivre(emprunt.id);
+                                    toast.success("Livre rendu avec succès !");
+                                    fetchProfile(user.id_utilisateur);
+                                  } catch(e) { toast.error(e.message); }
+                                }}
+                              >
+                                Marquer comme rendu
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      {isRetourne ? (
-                        <span style={{ padding: '0.25rem 0.75rem', background: '#e5e7eb', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                          Retourné le {new Date(emprunt.date_retour_effective).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        <button 
-                          className="btn btn-outline" 
-                          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderColor: isRetard ? '#ef4444' : 'var(--primary)', color: isRetard ? '#ef4444' : 'var(--primary)' }}
-                          onClick={async () => {
-                            try {
-                              await empruntsService.retournerLivre(emprunt.id);
-                              toast.success("Livre rendu avec succès !");
-                              fetchProfile(user.id_utilisateur); // Rafraîchir
-                            } catch(e) { toast.error(e.message); }
-                          }}
-                        >
-                          Rendre le livre
-                        </button>
-                      )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Section Recommandations Personnalisées ── */}
+        {(profileData.type_utilisateur === 'etudiant' || profileData.type_utilisateur === 'professeur') && (
+          <div className="profil-details card glass-panel" style={{ marginTop: '2rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🤖 Livres recommandés pour vous
+            </h2>
+            <div className="detail-divider"></div>
+            {recoLoading ? (
+              <p style={{ color: 'var(--text-muted)' }}>Chargement des recommandations…</p>
+            ) : recoLivres.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>
+                Aucune recommandation disponible pour l'instant — empruntez des livres pour personnaliser vos suggestions !
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                {recoLivres.map(livre => (
+                  <div
+                    key={livre.id}
+                    style={{
+                      background: 'var(--surface)',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border)',
+                      transition: 'transform 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    {livre.image_url ? (
+                      <img
+                        src={livre.image_url}
+                        alt={livre.titre}
+                        style={{ width: '100%', height: '120px', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div style={{
+                        height: '120px',
+                        background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '2.5rem'
+                      }}>📚</div>
+                    )}
+                    <div style={{ padding: '0.75rem' }}>
+                      <p style={{ margin: 0, fontWeight: '600', fontSize: '0.85rem', color: 'var(--text)', lineHeight: '1.3' }}>
+                        {livre.titre}
+                      </p>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {livre.auteur}
+                      </p>
+                      <span style={{
+                        display: 'inline-block',
+                        marginTop: '0.5rem',
+                        padding: '0.15rem 0.5rem',
+                        background: 'rgba(var(--primary-rgb, 99,102,241), 0.15)',
+                        color: 'var(--primary)',
+                        borderRadius: '99px',
+                        fontSize: '0.7rem',
+                        fontWeight: '600'
+                      }}>
+                        {livre.categorie}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+              <Link to="/catalogue" className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}>
+                Voir tout le catalogue →
+              </Link>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
       </div>
     </div>

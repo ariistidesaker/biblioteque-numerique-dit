@@ -83,7 +83,8 @@ const Login = () => {
             className={`btn btn-primary btn-full login-btn ${isLoading ? 'loading' : ''}`}
             disabled={isLoading}
           >
-            {isLoading ? 'Connexion en cours...' : 'Se Connecter'}
+            {isLoading && <div className="btn-spinner"></div>}
+            {isLoading ? 'Connexion...' : 'Se Connecter'}
           </button>
         </form>
 

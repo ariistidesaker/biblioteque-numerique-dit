@@ -5,27 +5,43 @@ import { authService } from '../services/authService';
 import { empruntsService } from '../services/empruntsService';
 import toast from 'react-hot-toast';
 
+const CATEGORIES = ["Roman", "Science", "Informatique", "Histoire", "Bande Dessinée", "Autre"];
+
 const Catalogue = () => {
   const [books, setBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [filterAvailable, setFilterAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(12);
+  const [hasMore, setHasMore] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-  const [currentBook, setCurrentBook] = useState({ titre: '', auteur: '', isbn: '', description: '' });
+  const [currentBook, setCurrentBook] = useState({ 
+    titre: '', 
+    auteur: '', 
+    isbn: '', 
+    description: '',
+    exemplaires_totaux: 1,
+    categorie: 'Roman'
+  });
 
   const currentUser = authService.getCurrentUser();
   const isPersonnel = currentUser?.type_utilisateur === 'PERSONNEL' || currentUser?.type_utilisateur === 'ADMIN';
 
   useEffect(() => {
     fetchBooks();
-  }, []);
+  }, [page, selectedCategory]);
 
   const fetchBooks = async () => {
     setIsLoading(true);
     try {
-      const data = await livresService.getLivres();
+      const skip = (page - 1) * limit;
+      const data = await livresService.getLivres(skip, limit, selectedCategory || null);
       setBooks(data);
+      setHasMore(data.length === limit);
     } catch (error) {
       console.error("Erreur de chargement", error);
     } finally {
@@ -33,13 +49,22 @@ const Catalogue = () => {
     }
   };
 
+  // Reset page when category changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory]);
+
   const filteredBooks = books.filter(book => {
-    return book.titre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-           book.auteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (book.isbn && book.isbn.includes(searchTerm));
+    const matchesSearch = book.titre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          book.auteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (book.isbn && book.isbn.includes(searchTerm));
+    
+    const matchesAvailability = !filterAvailable || book.disponible;
+    
+    return matchesSearch && matchesAvailability;
   });
 
-  const handleOpenModal = (mode, book = { titre: '', auteur: '', isbn: '', description: '' }) => {
+  const handleOpenModal = (mode, book = { titre: '', auteur: '', isbn: '', description: '', exemplaires_totaux: 1, categorie: 'Roman' }) => {
     setModalMode(mode);
     setCurrentBook(book);
     setShowModal(true);
@@ -47,7 +72,14 @@ const Catalogue = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setCurrentBook({ titre: '', auteur: '', isbn: '', description: '' });
+    setCurrentBook({ 
+      titre: '', 
+      auteur: '', 
+      isbn: '', 
+      description: '',
+      exemplaires_totaux: 1,
+      categorie: 'Roman'
+    });
   };
 
   const handleSaveBook = async (e) => {
@@ -106,15 +138,46 @@ const Catalogue = () => {
         <h1 className="catalogue-title">Catalogue des <span className="text-gradient">Livres</span></h1>
         <p className="catalogue-subtitle">Découvrez et empruntez parmi des milliers d'ouvrages.</p>
         
-        <div className="search-bar glass-panel">
-          <span className="search-icon">🔍</span>
-          <input 
-            type="text" 
-            placeholder="Rechercher par titre, auteur, ISBN..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
+        {/* Barre de Recherche Premium */}
+        <div className="search-section animate-fade-in">
+          <div className="search-bar glass-panel">
+            <span className="search-icon">🔍</span>
+            <input 
+              type="text" 
+              placeholder="Rechercher par titre, auteur, ISBN..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            <div className="search-divider"></div>
+            <label className="availability-toggle">
+              <input 
+                type="checkbox" 
+                checked={filterAvailable} 
+                onChange={(e) => setFilterAvailable(e.target.checked)} 
+              />
+              <span className="toggle-label">Disponibles</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Catégories sous forme de Pills */}
+        <div className="categories-pills animate-fade-in">
+          <button 
+            className={`pill-btn ${selectedCategory === "" ? "active" : ""}`}
+            onClick={() => setSelectedCategory("")}
+          >
+            Tous
+          </button>
+          {CATEGORIES.map(cat => (
+            <button 
+              key={cat}
+              className={`pill-btn ${selectedCategory === cat ? "active" : ""}`}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
         {isPersonnel && (
@@ -125,54 +188,80 @@ const Catalogue = () => {
       </div>
 
       {isLoading ? (
-        <div className="loading-state">Chargement des livres...</div>
+        <div className="loader-container">
+          <div className="spinner"></div>
+          <p className="loading-text">Chargement du catalogue...</p>
+        </div>
       ) : (
-        <div className="books-grid">
-          {filteredBooks.map((book, index) => (
-            <div 
-              key={book.id} 
-              className="book-card glass-panel animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className={`book-cover ${!book.image_url ? `gradient-${(book.id % 6) + 1}` : ''}`} style={book.image_url ? { padding: 0, overflow: 'hidden' } : {}}>
-                {book.image_url && <img src={book.image_url} alt={`Couverture de ${book.titre}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                <div className={`status-badge ${book.disponible ? 'available' : 'unavailable'}`} style={book.image_url ? { position: 'absolute', top: '10px', right: '10px' } : {}}>
-                  {book.disponible ? `${book.exemplaires_disponibles} exemplaires` : 'Indisponible'}
+        <>
+          <div className="books-grid">
+            {filteredBooks.map((book, index) => (
+              <div 
+                key={book.id} 
+                className="book-card glass-panel animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className={`book-cover ${!book.image_url ? `gradient-${(book.id % 6) + 1}` : ''}`} style={book.image_url ? { padding: 0, overflow: 'hidden' } : {}}>
+                  {book.image_url && <img src={book.image_url} alt={`Couverture de ${book.titre}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  <div className={`status-badge ${book.disponible ? 'available' : 'unavailable'}`} style={book.image_url ? { position: 'absolute', top: '10px', right: '10px' } : {}}>
+                    {book.disponible ? `${book.exemplaires_totaux} exemplaires` : 'Indisponible'}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="book-info">
-                <span className="book-category">Livre</span>
-                <h3 className="book-title">{book.titre}</h3>
-                <p className="book-author">{book.auteur}</p>
-                <p className="book-isbn" style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>ISBN: {book.isbn}</p>
                 
-                <div className="book-actions">
-                  {!isPersonnel && (
-                    <button 
-                      className={`btn ${book.disponible ? 'btn-primary' : 'btn-disabled'} btn-full`}
-                      onClick={() => book.disponible && handleEmprunter(book.id)}
-                      disabled={!book.disponible}
-                    >
-                      {book.disponible ? 'Emprunter' : 'Épuisé'}
-                    </button>
-                  )}
-                  {isPersonnel && (
-                    <div className="admin-actions" style={{display: 'flex', gap: '0.5rem', marginTop: '0.5rem', width: '100%'}}>
-                      <button className="btn btn-outline btn-full" onClick={() => handleOpenModal('edit', book)}>Modifier</button>
-                      <button className="btn btn-outline btn-full" style={{borderColor: '#ef4444', color: '#ef4444'}} onClick={() => handleDeleteBook(book.id)}>Supprimer</button>
-                    </div>
-                  )}
+                <div className="book-info">
+                  <span className="book-category">{book.categorie || "Livre"}</span>
+                  <h3 className="book-title">{book.titre}</h3>
+                  <p className="book-author">{book.auteur}</p>
+                  <p className="book-isbn" style={{fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>ISBN: {book.isbn}</p>
+                  
+                  <div className="book-actions">
+                    {!isPersonnel && (
+                      <button 
+                        className={`btn ${book.disponible ? 'btn-primary' : 'btn-disabled'} btn-full`}
+                        onClick={() => book.disponible && handleEmprunter(book.id)}
+                        disabled={!book.disponible}
+                      >
+                        {book.disponible ? 'Emprunter' : 'Épuisé'}
+                      </button>
+                    )}
+                    {isPersonnel && (
+                      <div className="admin-actions" style={{display: 'flex', gap: '0.5rem', marginTop: '0.5rem', width: '100%'}}>
+                        <button className="btn btn-outline btn-full" onClick={() => handleOpenModal('edit', book)}>Modifier</button>
+                        <button className="btn btn-outline btn-full" style={{borderColor: '#ef4444', color: '#ef4444'}} onClick={() => handleDeleteBook(book.id)}>Supprimer</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {filteredBooks.length === 0 && (
-            <div className="no-results">
-              <p>Aucun livre ne correspond à votre recherche. 😔</p>
+            ))}
+          </div>
+
+          {!searchTerm && (
+            <div className="pagination-controls animate-fade-in">
+              <button 
+                className={`btn btn-outline ${page === 1 ? 'btn-disabled' : ''}`}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Précédent
+              </button>
+              <span className="page-info">Page <strong>{page}</strong></span>
+              <button 
+                className={`btn btn-outline ${!hasMore ? 'btn-disabled' : ''}`}
+                onClick={() => setPage(p => p + 1)}
+                disabled={!hasMore}
+              >
+                Suivant
+              </button>
             </div>
           )}
-        </div>
+          
+          {filteredBooks.length === 0 && (
+            <div className="no-results">
+              <p>Aucun livre ne correspond à votre recherche ou à vos filtres. 😔</p>
+            </div>
+          )}
+        </>
       )}
 
       {showModal && (
@@ -189,6 +278,16 @@ const Catalogue = () => {
                 <input required type="text" value={currentBook.auteur} onChange={e => setCurrentBook({...currentBook, auteur: e.target.value})} className="form-input" />
               </div>
               <div className="form-group">
+                <label>Catégorie</label>
+                <select 
+                  className="form-input" 
+                  value={currentBook.categorie} 
+                  onChange={e => setCurrentBook({...currentBook, categorie: e.target.value})}
+                >
+                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
                 <label>ISBN</label>
                 <input required type="text" value={currentBook.isbn} onChange={e => setCurrentBook({...currentBook, isbn: e.target.value})} className="form-input" />
               </div>
@@ -200,15 +299,9 @@ const Catalogue = () => {
                 <label>Description</label>
                 <textarea rows="4" value={currentBook.description || ''} onChange={e => setCurrentBook({...currentBook, description: e.target.value})} className="form-input"></textarea>
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Exemplaires Totaux</label>
-                  <input type="number" min="0" value={currentBook.exemplaires_totaux || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_totaux: parseInt(e.target.value) || 0})} className="form-input" />
-                </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Disponibles</label>
-                  <input type="number" min="0" value={currentBook.exemplaires_disponibles || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_disponibles: parseInt(e.target.value) || 0})} className="form-input" />
-                </div>
+              <div className="form-group">
+                <label>Exemplaires Totaux</label>
+                <input type="number" min="0" value={currentBook.exemplaires_totaux || 1} onChange={e => setCurrentBook({...currentBook, exemplaires_totaux: parseInt(e.target.value) || 0})} className="form-input" />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-outline" onClick={handleCloseModal}>Annuler</button>

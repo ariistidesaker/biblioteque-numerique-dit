@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8001'; // Port du service livres défini dans docker-compose.yml
+const API_URL = import.meta.env.VITE_LIVRES_API_URL || 'http://localhost:8001';
 
 export const livresService = {
   /**
@@ -7,9 +7,11 @@ export const livresService = {
    * @param {number} limit 
    * @returns {Promise<Array>}
    */
-  async getLivres(skip = 0, limit = 100) {
+  async getLivres(skip = 0, limit = 100, categorie = null) {
     try {
-      const response = await fetch(`${API_URL}/livres/?skip=${skip}&limit=${limit}`);
+      let url = `${API_URL}/livres/?skip=${skip}&limit=${limit}`;
+      if (categorie) url += `&categorie=${encodeURIComponent(categorie)}`;
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Erreur lors de la récupération des livres');
       return await response.json();
     } catch (error) {
