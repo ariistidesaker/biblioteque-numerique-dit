@@ -102,7 +102,7 @@ def _run_training_pipeline(db: Session, version: str) -> dict:
     Retourne un dict avec status et metrics.
     """
     from .ml.process import clean_and_feature_engineer, generate_synthetic_data
-    from .ml.train import UserBasedRecommender
+    from .ml.model import UserBasedRecommender
     from .ml.evaluate import evaluate
 
     import pandas as pd

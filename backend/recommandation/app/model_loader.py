@@ -11,10 +11,13 @@ import os
 import pickle
 from typing import Optional
 
+# Nécessaire pour que pickle puisse reconstruire l'objet
+from .ml.model import UserBasedRecommender  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 # Chemin vers le fichier modèle (configurable via variable d'env)
-MODEL_PATH = os.getenv("MODEL_PATH", "/app/model/model.pkl")
+MODEL_PATH = os.getenv("MODEL_PATH", os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "models", "model.pkl"))
 
 # Instance partagée du modèle
 _model = None
