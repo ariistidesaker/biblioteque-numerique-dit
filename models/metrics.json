@@ -1,0 +1,7 @@
+{
+  "precision_at_k": 0.054,
+  "recall_at_k": 0.0564,
+  "coverage": 0.48,
+  "k": 5,
+  "n_users_evaluated": 200
+}

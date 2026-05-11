@@ -1,0 +1,61 @@
+schema: '2.0'
+stages:
+  process:
+    cmd: "python -m backend.recommandation.app.ml.process --input  data/loans.csv
+      --output data/processed_loans.csv\n"
+    deps:
+    - path: backend/recommandation/app/ml/process.py
+      hash: md5
+      md5: 09867daf4f9d1a26a51963b4b6ab56f2
+      size: 7256
+    - path: data/loans.csv
+      hash: md5
+      md5: ebe534ec05bb84af0a9ebe2bb7531d89
+      size: 640977
+    outs:
+    - path: data/processed_loans.csv
+      hash: md5
+      md5: 9043dd46b20cd26c9715896532d0c721
+      size: 200577
+  train:
+    cmd: "python -m backend.recommandation.app.ml.train --input  data/processed_loans.csv
+      --output models/model.pkl\n"
+    deps:
+    - path: backend/recommandation/app/ml/train.py
+      hash: md5
+      md5: 547d5bbc70aa90e6d5b407b611cae4d8
+      size: 2091
+    - path: data/processed_loans.csv
+      hash: md5
+      md5: 9043dd46b20cd26c9715896532d0c721
+      size: 200577
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 35f7ae015f76634b23409700018f6340
+      size: 491383
+  evaluate:
+    cmd: "python -m backend.recommandation.app.ml.evaluate --data    data/processed_loans.csv
+      --model   models/model.pkl --metrics models/metrics.json --k       5\n"
+    deps:
+    - path: backend/recommandation/app/ml/evaluate.py
+      hash: md5
+      md5: 4f2fe566087d44e65e639518f1c17835
+      size: 7682
+    - path: backend/recommandation/app/ml/train.py
+      hash: md5
+      md5: 547d5bbc70aa90e6d5b407b611cae4d8
+      size: 2091
+    - path: data/processed_loans.csv
+      hash: md5
+      md5: 9043dd46b20cd26c9715896532d0c721
+      size: 200577
+    - path: models/model.pkl
+      hash: md5
+      md5: 35f7ae015f76634b23409700018f6340
+      size: 491383
+    outs:
+    - path: models/metrics.json
+      hash: md5
+      md5: db36e950e6a73f10a7d491fca28ea7be
+      size: 118

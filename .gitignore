@@ -43,7 +43,7 @@ docker-compose.override.yml
 .docker/
 
 # DVC / Machine Learning
-/data/*.csv
+#/data/*.csv
 /models/*.pkl
 !/data/.gitkeep
 !/models/.gitkeep
