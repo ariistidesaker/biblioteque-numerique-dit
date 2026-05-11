@@ -9,7 +9,14 @@ démarre quand même et renvoie des recommandations de secours.
 import logging
 import os
 import pickle
+import sys
 from typing import Optional
+
+# Ajouter la racine du projet au sys.path pour que pickle puisse
+# résoudre 'backend.recommandation.app.ml.model' lors de la désérialisation
+_project_root = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
 # Nécessaire pour que pickle puisse reconstruire l'objet
 from .ml.model import UserBasedRecommender  # noqa: F401
@@ -17,7 +24,10 @@ from .ml.model import UserBasedRecommender  # noqa: F401
 logger = logging.getLogger(__name__)
 
 # Chemin vers le fichier modèle (configurable via variable d'env)
-MODEL_PATH = os.getenv("MODEL_PATH", os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "models", "model.pkl"))
+MODEL_PATH = os.getenv(
+    "MODEL_PATH",
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "models", "model.pkl"))
+)
 
 # Instance partagée du modèle
 _model = None
