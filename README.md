@@ -72,34 +72,42 @@ bibliotheque-numerique-dit/
 │   │   ├── app/
 │   │   │   ├── main.py                 # Routes emprunts, retours, historique, export
 │   │   │   ├── models.py
+│   │   │   ├── schemas.py              # Schémas de données (Pydantic)
 │   │   │   ├── database.py
 │   │   │   └── requirements.txt
 │   │   └── Dockerfile
 │   │
 │   └── recommandation/
 │       ├── app/
-│       │   ├── main.py                 # Application FastAPI (routes reco / santé selon évolution du projet)
-│       │   ├── models.py               # SQLAlchemy (ex. historique d’entraînement)
-│       │   ├── database.py             # Connexion DB si utilisée par le service
-│       │   ├── model_loader.py         # Charge model.pkl depuis le volume
-│       │   ├── ml/                     # Scripts ML (training / preprocessing / évaluation)
-│       │   │   ├── process.py
-│       │   │   ├── train.py
-│       │   │   └── evaluate.py
-│       │   └── requirements.txt
+│       │   ├── main.py                 # API FastAPI (Recommandations personnalisées, Santé, Entraînement)
+│       │   ├── models.py               # SQLAlchemy (Historique d'entraînement)
+│       │   ├── schemas.py              # Schémas Pydantic de réponse
+│       │   ├── database.py             # Connexion PostgreSQL (suivi des versions)
+│       │   ├── model_loader.py         # Chargement paresseux (lazy loading) du modèle ML
+│       │   ├── ml/                     # Pipeline Machine Learning (DVC)
+│       │   │   ├── __init__.py
+│       │   │   ├── process.py          # Prétraitement et Feature Engineering
+│       │   │   ├── train.py            # Entraînement (User-Based Collaborative Filtering)
+│       │   │   └── evaluate.py         # Évaluation des performances (Précision, Recall, Couverture)
+│       │   ├── __init__.py
+│       │   └── requirements.txt        # Dépendances ML (scikit-learn, pandas, numpy...)
 │       └── Dockerfile
 │
-├── data/                               # Données suivies ou ignorées selon `.gitignore` / DVC
-│   └── (pointeurs `.dvc` ou CSV selon votre configuration locale)
+├── data/                               # Données d'entraînement (raw_loans.csv, processed_loans.csv)
+│   └── (fichiers CSV ou pointeurs .dvc)
 │
-├── models/                             # Modèle ML et métriques (géré par DVC dans le projet)
-│   ├── model.pkl.dvc
-│   └── metrics.json.dvc
+├── models/                             # Modèle ML et métriques
+│   ├── model.pkl                       # Modèle entraîné (suivi par DVC)
+│   └── metrics.json                    # Résultats de l'évaluation (suivis par DVC)
 │
 ├── db/
 │   └── init.sql                        # Script d’init au démarrage Postgres (création des bases)
 │
-├── docker-compose.yml                  # db + livres + utilisateurs + emprunts + reco-api + frontend
+├── docker-compose.yml                  # Stack complète (+ Jenkins via profil « ci »)
+├── Jenkinsfile                         # Pipeline CI/CD Jenkins (déclaratif)
+├── jenkins/
+│   ├── plugins.txt                     # Plugins Jenkins recommandés
+│   └── job-config.xml                  # Exemple de job Pipeline
 ├── start-local.sh                      # Développement : DB Docker + APIs + frontend locaux
 ├── .gitignore
 ├── dvc.yml                             # Pipeline DVC (référencé par le projet)
@@ -120,6 +128,7 @@ bibliotheque-numerique-dit/
 - **Machine Learning** : Scikit-Learn, Pandas, NumPy, Joblib.
 - **Base de données** : PostgreSQL (Images Docker).
 - **Infrastucture** : Docker & Docker Compose.
+- **CI/CD** : Jenkins (pipeline déclaratif à la racine).
 
 ---
 
@@ -148,6 +157,37 @@ cd frontend
 npm install
 cd ..
 ```
+
+---
+
+## 🔐 Configuration des Variables d'Environnement
+
+Le projet utilise un fichier `.env` à la racine pour centraliser toutes les configurations. Ce fichier est indispensable pour le bon fonctionnement des services.
+
+1. Créez un fichier `.env` à la racine du projet (copiez le contenu ci-dessous ou utilisez `.env.example` s'il est fourni) :
+
+```env
+# Configuration de la Base de Données (Locale)
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=library_user
+DB_PASS=library_pass
+
+# URLs des Microservices (Backend)
+LIVRES_SERVICE_URL=http://localhost:8001
+UTILISATEURS_SERVICE_URL=http://localhost:8002
+EMPRUNTS_SERVICE_URL=http://localhost:8003
+RECOMMANDATION_SERVICE_URL=http://localhost:8004
+
+# Variables d'environnement pour le Frontend (Vite)
+VITE_LIVRES_API_URL=http://localhost:8001
+VITE_UTILISATEURS_API_URL=http://localhost:8002
+VITE_EMPRUNTS_API_URL=http://localhost:8003
+VITE_RECOMMANDATION_API_URL=http://localhost:8004
+```
+
+> [!IMPORTANT]
+> Pour des raisons de sécurité, les URLs de base de données ne sont plus codées en dur dans le code. Si le fichier `.env` n'est pas correctement configuré, les services backend ne démarreront pas.
 
 ---
 
@@ -193,7 +233,7 @@ docker compose up -d db
 # 2. Se placer dans le dossier du service concerné
 cd backend/utilisateurs
 
-# 3. Définir l'URL de la base de données avec le port mappé en local (5433)
+# 3. Définir l'URL de la base de données (manuellement ou via chargement du .env)
 $env:DATABASE_URL="postgresql+psycopg://library_user:library_pass@localhost:5433/utilisateurs_db"
 
 # 4. Lancer le serveur (Port 8002 pour Utilisateurs)
@@ -218,6 +258,58 @@ Pour arreter :
 ```bash
 docker compose down
 ```
+
+---
+
+## Jenkins (CI/CD)
+
+Le service **Jenkins** est défini dans le `docker-compose.yml` principal (profil `ci`), au même titre que PgAdmin. Le pipeline déclaratif se trouve dans `Jenkinsfile`.
+
+### Prérequis de l'agent Jenkins
+
+- **Git**, **Python 3.11+**, **Node.js 20+**, **npm**
+- **Docker** et **Docker Compose** (pour le stage de build des images)
+- Shell `sh` (agent Linux, conteneur, ou WSL)
+- Socket Docker monté dans le conteneur Jenkins (`/var/run/docker.sock`)
+
+### Lancer Jenkins
+
+Jenkins n'est **pas** démarré par un simple `docker compose up` (profil optionnel, pour ne pas alourdir le démarrage applicatif) :
+
+```bash
+# Jenkins seul
+docker compose --profile ci up -d jenkins
+
+# Stack applicative + Jenkins
+docker compose --profile ci up -d
+```
+
+Ouvrez [http://localhost:8080](http://localhost:8080) (ou le port défini par `JENKINS_HTTP_PORT` dans `.env`), récupérez le mot de passe initial :
+
+```bash
+docker exec jenkins-bibliotheque-dit cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Installez les plugins recommandés (`jenkins/plugins.txt`), puis créez un job **Pipeline** pointant vers le dépôt Git et le script `Jenkinsfile` à la racine.
+
+### Stages du pipeline
+
+| Stage | Description |
+|-------|-------------|
+| Checkout | Récupération du code source |
+| Frontend | `npm ci`, `npm run lint`, `npm run build` |
+| Backend | Compilation Python + installation des dépendances des 4 microservices |
+| Docker | `docker compose build` (paramètre `RUN_DOCKER_BUILD`, activé par défaut) |
+| DVC (ML) | `dvc repro` + métriques (paramètre `RUN_DVC_PIPELINE`, désactivé par défaut) |
+
+Le stage DVC nécessite un remote DVC configuré (`dvc pull`) et les identifiants Google Drive si vous utilisez le remote du projet.
+
+### Paramètres de build
+
+- **RUN_DOCKER_BUILD** : construire les images Docker (défaut : `true`)
+- **RUN_DVC_PIPELINE** : exécuter le pipeline machine learning DVC (défaut : `false`)
+
+Un exemple de configuration de job est fourni dans `jenkins/job-config.xml` (branche `develop`, déclenchement SCM toutes les 5 minutes).
 
 ---
 

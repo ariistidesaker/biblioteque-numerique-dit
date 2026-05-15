@@ -1,12 +1,9 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: library_user
-      POSTGRES_PASSWORD: library_pass
-      # POSTGRES_DB n'est plus utilisé ici pour permettre à init.sql de créer plusieurs bases
+      POSTGRES_USER: ${DB_USER:-library_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-library_pass}
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -14,43 +11,73 @@ services:
       - "5433:5432"
     networks:
       - library-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-library_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@library.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - library-net
+    restart: unless-stopped
 
   livres:
     build: ./backend/livres
     ports:
       - "8001:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/livres_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/livres_db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - library-net
+    restart: unless-stopped
 
   utilisateurs:
     build: ./backend/utilisateurs
     ports:
       - "8002:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/utilisateurs_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/utilisateurs_db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - library-net
+    restart: unless-stopped
 
   emprunts:
     build: ./backend/emprunts
     ports:
       - "8003:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/emprunts_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/emprunts_db
       LIVRES_SERVICE_URL: http://livres:8000
       UTILISATEURS_SERVICE_URL: http://utilisateurs:8000
     depends_on:
-      - db
-      - livres
-      - utilisateurs
+      db:
+        condition: service_healthy
+      livres:
+        condition: service_started
+      utilisateurs:
+        condition: service_started
     networks:
       - library-net
+    restart: unless-stopped
 
   reco-api:
     build: ./backend/recommandation
@@ -60,22 +87,57 @@ services:
       - model-storage:/app/model
     environment:
       MODEL_PATH: /app/model/model.pkl
-      DATABASE_URL: postgresql+psycopg://library_user:library_pass@db/recommandation_db
+      DATABASE_URL: postgresql+psycopg://${DB_USER:-library_user}:${DB_PASS:-library_pass}@db/recommandation_db
+      EMPRUNTS_SERVICE_URL: http://emprunts:8000
+      LIVRES_SERVICE_URL: http://livres:8000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      emprunts:
+        condition: service_started
+      livres:
+        condition: service_started
     networks:
       - library-net
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
     ports:
       - "80:80"
+    environment:
+      VITE_LIVRES_API_URL: http://localhost:8001
+      VITE_UTILISATEURS_API_URL: http://localhost:8002
+      VITE_EMPRUNTS_API_URL: http://localhost:8003
+      VITE_RECOMMANDATION_API_URL: http://localhost:8004
     networks:
       - library-net
+    restart: unless-stopped
+
+  # CI/CD — profil optionnel : docker compose --profile ci up -d
+  jenkins:
+    profiles:
+      - ci
+    image: jenkins/jenkins:lts-jdk21
+    container_name: jenkins-bibliotheque-dit
+    user: root
+    ports:
+      - "${JENKINS_HTTP_PORT:-8080}:8080"
+      - "${JENKINS_AGENT_PORT:-50000}:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+    networks:
+      - library-net
+    restart: unless-stopped
 
 volumes:
   db-data:
   model-storage:
+  pgadmin-data:
+  jenkins_home:
 
 networks:
   library-net:

@@ -18,6 +18,8 @@ htmlcov/
 # Fichiers d'environnement et secrets
 .env
 .env.*
+!.env.example
+
 *.pem
 
 # Bases de données locales
@@ -41,7 +43,7 @@ docker-compose.override.yml
 .docker/
 
 # DVC / Machine Learning
-/data/*.csv
+#/data/*.csv
 /models/*.pkl
 !/data/.gitkeep
 !/models/.gitkeep
