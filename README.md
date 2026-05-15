@@ -103,7 +103,11 @@ bibliotheque-numerique-dit/
 ├── db/
 │   └── init.sql                        # Script d’init au démarrage Postgres (création des bases)
 │
-├── docker-compose.yml                  # db + livres + utilisateurs + emprunts + reco-api + frontend
+├── docker-compose.yml                  # Stack complète (+ Jenkins via profil « ci »)
+├── Jenkinsfile                         # Pipeline CI/CD Jenkins (déclaratif)
+├── jenkins/
+│   ├── plugins.txt                     # Plugins Jenkins recommandés
+│   └── job-config.xml                  # Exemple de job Pipeline
 ├── start-local.sh                      # Développement : DB Docker + APIs + frontend locaux
 ├── .gitignore
 ├── dvc.yml                             # Pipeline DVC (référencé par le projet)
@@ -124,6 +128,7 @@ bibliotheque-numerique-dit/
 - **Machine Learning** : Scikit-Learn, Pandas, NumPy, Joblib.
 - **Base de données** : PostgreSQL (Images Docker).
 - **Infrastucture** : Docker & Docker Compose.
+- **CI/CD** : Jenkins (pipeline déclaratif à la racine).
 
 ---
 
@@ -253,6 +258,58 @@ Pour arreter :
 ```bash
 docker compose down
 ```
+
+---
+
+## Jenkins (CI/CD)
+
+Le service **Jenkins** est défini dans le `docker-compose.yml` principal (profil `ci`), au même titre que PgAdmin. Le pipeline déclaratif se trouve dans `Jenkinsfile`.
+
+### Prérequis de l'agent Jenkins
+
+- **Git**, **Python 3.11+**, **Node.js 20+**, **npm**
+- **Docker** et **Docker Compose** (pour le stage de build des images)
+- Shell `sh` (agent Linux, conteneur, ou WSL)
+- Socket Docker monté dans le conteneur Jenkins (`/var/run/docker.sock`)
+
+### Lancer Jenkins
+
+Jenkins n'est **pas** démarré par un simple `docker compose up` (profil optionnel, pour ne pas alourdir le démarrage applicatif) :
+
+```bash
+# Jenkins seul
+docker compose --profile ci up -d jenkins
+
+# Stack applicative + Jenkins
+docker compose --profile ci up -d
+```
+
+Ouvrez [http://localhost:8080](http://localhost:8080) (ou le port défini par `JENKINS_HTTP_PORT` dans `.env`), récupérez le mot de passe initial :
+
+```bash
+docker exec jenkins-bibliotheque-dit cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Installez les plugins recommandés (`jenkins/plugins.txt`), puis créez un job **Pipeline** pointant vers le dépôt Git et le script `Jenkinsfile` à la racine.
+
+### Stages du pipeline
+
+| Stage | Description |
+|-------|-------------|
+| Checkout | Récupération du code source |
+| Frontend | `npm ci`, `npm run lint`, `npm run build` |
+| Backend | Compilation Python + installation des dépendances des 4 microservices |
+| Docker | `docker compose build` (paramètre `RUN_DOCKER_BUILD`, activé par défaut) |
+| DVC (ML) | `dvc repro` + métriques (paramètre `RUN_DVC_PIPELINE`, désactivé par défaut) |
+
+Le stage DVC nécessite un remote DVC configuré (`dvc pull`) et les identifiants Google Drive si vous utilisez le remote du projet.
+
+### Paramètres de build
+
+- **RUN_DOCKER_BUILD** : construire les images Docker (défaut : `true`)
+- **RUN_DVC_PIPELINE** : exécuter le pipeline machine learning DVC (défaut : `false`)
+
+Un exemple de configuration de job est fourni dans `jenkins/job-config.xml` (branche `develop`, déclenchement SCM toutes les 5 minutes).
 
 ---
 
