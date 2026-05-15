@@ -6,11 +6,11 @@ stages:
   process:
     cmd: >
       python -m backend.recommandation.app.ml.process
-      --input  data/raw_loans.csv
+      --input  data/loans.csv
       --output data/processed_loans.csv
     deps:
       - backend/recommandation/app/ml/process.py
-      - data/raw_loans.csv
+      - data/loans.csv
     outs:
       - data/processed_loans.csv
 

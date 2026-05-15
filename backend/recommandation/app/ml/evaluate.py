@@ -152,12 +152,7 @@ def main():
         logger.error(f"Modèle introuvable : {args.model}")
         raise FileNotFoundError(args.model)
 
-    # Import local pour éviter les imports circulaires
-    try:
-        from app.ml.train import UserBasedRecommender
-    except ModuleNotFoundError:
-        from backend.recommandation.app.ml.train import UserBasedRecommender
-        
+    from .model import UserBasedRecommender
     model = UserBasedRecommender.load(args.model)
 
     # Chargement des données
